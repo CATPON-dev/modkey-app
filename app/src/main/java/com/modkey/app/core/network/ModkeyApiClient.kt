@@ -209,7 +209,9 @@ class ModkeyApiClient(
         val raw = executeAction(apiKey, "edit-soft") {
             put("soft_id", softId)
             put("status", status)
-            if (reason != null) put("status_reason", reason)
+            // Причина техработ meaningful только при отключении (status = 0).
+            // При включении отправлять status_reason нельзя — иначе панель не поднимает софт.
+            if (status == 0 && !reason.isNullOrBlank()) put("status_reason", reason)
         }
         val dataElem = unwrapData(raw)
         json.decodeFromJsonElement<SoftwareItem>(dataElem)

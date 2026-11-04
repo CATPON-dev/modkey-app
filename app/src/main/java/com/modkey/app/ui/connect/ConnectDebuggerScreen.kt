@@ -9,16 +9,20 @@ import android.os.Build
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -32,20 +36,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,7 +46,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -65,8 +54,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.modkey.app.ModkeyApp
 import com.modkey.app.core.model.SavedAccount
+import com.modkey.app.ui.components.CircularLoader
+import com.modkey.app.ui.components.ModkeyButton
+import com.modkey.app.ui.components.ModkeyFilterChip
+import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.components.ModkeyOutlinedTextField
+import com.modkey.app.ui.components.ModkeyIconButton
 import com.modkey.app.ui.components.SectionHeader
 import com.modkey.app.ui.components.StatusBadge
+import com.modkey.app.ui.components.Surface
+import com.modkey.app.ui.components.Text
+import com.modkey.app.ui.theme.ModkeyDesign
+import com.modkey.app.ui.theme.NataSans
+import com.modkey.app.ui.theme.modkeyPress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -88,7 +88,6 @@ private fun md5Hex(input: String): String {
     return bytes.joinToString("") { "%02x".format(it) }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConnectDebuggerScreen(
     account: SavedAccount
@@ -364,39 +363,58 @@ fun ConnectDebuggerScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ModkeyDesign.Colors.background)
+            .statusBarsPadding()
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 SectionHeader(
                     title = "Connect Тестер & Код",
                     subtitle = "Проверка лицензий, подписи MD5 и генерация кода для софта"
                 )
 
-                SecondaryTabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                // Segmented tabs
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ModkeyDesign.Colors.surfaceContainerLow, RoundedCornerShape(16.dp))
+                        .padding(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Тестер Connect") }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("Генератор кода") }
-                    )
+                    listOf("Тестер Connect" to 0, "Генератор кода" to 1).forEach { (label, idx) ->
+                        val isSelected = selectedTab == idx
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(
+                                    if (isSelected) ModkeyDesign.Colors.primary else Color.Transparent,
+                                    RoundedCornerShape(13.dp)
+                                )
+                                .modkeyPress {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    selectedTab = idx
+                                }
+                                .padding(vertical = 9.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.Bold),
+                                color = if (isSelected) ModkeyDesign.Colors.onPrimary else ModkeyDesign.Colors.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                 }
             }
 
@@ -404,7 +422,11 @@ fun ConnectDebuggerScreen(
             item {
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    color = ModkeyDesign.Colors.surfaceContainerHigh,
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.3f)
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -416,43 +438,56 @@ fun ConnectDebuggerScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.PhoneAndroid, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                ModkeyIcon(
+                                    imageVector = Icons.Filled.PhoneAndroid,
+                                    contentDescription = null,
+                                    tint = ModkeyDesign.Colors.primary,
+                                    modifier = Modifier.size(19.dp)
+                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Android HWID текущего телефона",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
+                                    style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold),
+                                    maxLines = 1
                                 )
                             }
-                            IconButton(
+                            ModkeyIconButton(
                                 onClick = {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     clipboard.setPrimaryClip(ClipData.newPlainText("HWID", androidId))
                                     Toast.makeText(context, "HWID скопирован", Toast.LENGTH_SHORT).show()
-                                }
+                                },
+                                size = 34.dp,
+                                iconSize = 17.dp
                             ) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = "Копировать", modifier = Modifier.size(18.dp))
+                                ModkeyIcon(
+                                    imageVector = Icons.Filled.ContentCopy,
+                                    contentDescription = "Копировать",
+                                    tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                    modifier = Modifier.size(17.dp)
+                                )
                             }
                         }
 
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.surface,
+                            color = ModkeyDesign.Colors.surface,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = androidId,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                                color = MaterialTheme.colorScheme.primary,
+                                style = ModkeyDesign.Typography.bodyMedium(),
+                                fontFamily = FontFamily.Monospace,
+                                color = ModkeyDesign.Colors.primary,
                                 modifier = Modifier.padding(10.dp)
                             )
                         }
 
                         Text(
                             text = "${Build.MANUFACTURER} ${Build.MODEL} • Android ${Build.VERSION.RELEASE}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = ModkeyDesign.Typography.bodySmall(),
+                            color = ModkeyDesign.Colors.onSurfaceVariant
                         )
                     }
                 }
@@ -463,7 +498,11 @@ fun ConnectDebuggerScreen(
                 item {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        color = ModkeyDesign.Colors.surfaceContainer,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.3f)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -474,20 +513,19 @@ fun ConnectDebuggerScreen(
                         ) {
                             Text(
                                 text = "Параметры проверки Connect",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                style = ModkeyDesign.Typography.titleMedium().copy(fontWeight = FontWeight.Bold)
                             )
 
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(
+                                ModkeyFilterChip(
                                     selected = !useTestEndpoint,
                                     onClick = { useTestEndpoint = false },
-                                    label = { Text("Main Connect") }
+                                    label = "Main Connect"
                                 )
-                                FilterChip(
+                                ModkeyFilterChip(
                                     selected = useTestEndpoint,
                                     onClick = { useTestEndpoint = true },
-                                    label = { Text("Test Connect") }
+                                    label = "Test Connect"
                                 )
                             }
 
@@ -495,73 +533,74 @@ fun ConnectDebuggerScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                OutlinedTextField(
+                                ModkeyOutlinedTextField(
                                     value = softIdInput,
                                     onValueChange = { softIdInput = it },
-                                    label = { Text("Soft ID") },
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(14.dp),
+                                    label = "Soft ID",
                                     modifier = Modifier.weight(1f)
                                 )
 
-                                OutlinedTextField(
+                                ModkeyOutlinedTextField(
                                     value = gameInput,
                                     onValueChange = { gameInput = it },
-                                    label = { Text("Game") },
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(14.dp),
+                                    label = "Game",
                                     modifier = Modifier.weight(1.5f)
                                 )
                             }
 
-                            OutlinedTextField(
+                            ModkeyOutlinedTextField(
                                 value = userKeyInput,
                                 onValueChange = { userKeyInput = it },
-                                label = { Text("User Key (Лицензионный ключ)") },
-                                singleLine = true,
-                                shape = RoundedCornerShape(14.dp),
+                                label = "User Key (Лицензионный ключ)",
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            OutlinedTextField(
+                            ModkeyOutlinedTextField(
                                 value = serialInput,
                                 onValueChange = { serialInput = it },
-                                label = { Text("Serial (HWID)") },
-                                singleLine = true,
-                                shape = RoundedCornerShape(14.dp),
+                                label = "Serial (HWID)",
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            OutlinedTextField(
+                            ModkeyOutlinedTextField(
                                 value = connectSecretInput,
                                 onValueChange = { connectSecretInput = it },
-                                label = { Text("CONNECT_SECRET (опционально для проверки MD5)") },
-                                placeholder = { Text("Из Connect Settings > Request > Secret") },
-                                singleLine = true,
-                                shape = RoundedCornerShape(14.dp),
+                                label = "CONNECT_SECRET (опционально для проверки MD5)",
+                                placeholder = "Из Connect Settings > Request > Secret",
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            Button(
+                            ModkeyButton(
                                 onClick = { runConnectTest() },
                                 enabled = !isTesting,
                                 shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp)
+                                minHeight = 52.dp,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 if (isTesting) {
-                                    CircularProgressIndicator(
+                                    CircularLoader(
                                         modifier = Modifier.size(20.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.dp
+                                        color = ModkeyDesign.Colors.onPrimary
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
-                                    Text("Отправка запроса...")
+                                    Text(
+                                        text = "Отправка запроса...",
+                                        style = ModkeyDesign.Typography.labelLarge(),
+                                        color = ModkeyDesign.Colors.onPrimary
+                                    )
                                 } else {
-                                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    ModkeyIcon(
+                                        imageVector = Icons.Filled.PlayArrow,
+                                        contentDescription = null,
+                                        tint = ModkeyDesign.Colors.onPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Проверить ключ через Connect")
+                                    Text(
+                                        text = "Проверить ключ через Connect",
+                                        style = ModkeyDesign.Typography.labelLarge(),
+                                        color = ModkeyDesign.Colors.onPrimary
+                                    )
                                 }
                             }
                         }
@@ -574,7 +613,11 @@ fun ConnectDebuggerScreen(
                         val statusSuccess = responseStatus == true
                         Surface(
                             shape = RoundedCornerShape(22.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            color = ModkeyDesign.Colors.surfaceContainerHigh,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                (if (statusSuccess) ModkeyDesign.Colors.success else ModkeyDesign.Colors.error).copy(alpha = 0.4f)
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -586,31 +629,32 @@ fun ConnectDebuggerScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                        ModkeyIcon(
                                             imageVector = if (statusSuccess) Icons.Filled.CheckCircle else Icons.Filled.Warning,
                                             contentDescription = null,
-                                            tint = if (statusSuccess) Color(0xFF4CAF50) else Color(0xFFE53935)
+                                            tint = if (statusSuccess) ModkeyDesign.Colors.success else ModkeyDesign.Colors.error,
+                                            modifier = Modifier.size(21.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = if (statusSuccess) "Лицензия подтверждена!" else "Отказ валидации",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold
+                                            style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold)
                                         )
                                     }
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     StatusBadge(
                                         text = "HTTP $httpCode",
-                                        color = if (httpCode == 200) Color(0xFF4CAF50) else Color(0xFFE53935)
+                                        color = if (httpCode == 200) ModkeyDesign.Colors.success else ModkeyDesign.Colors.error
                                     )
                                 }
 
                                 if (tokenVerified != null) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            Icons.Filled.VerifiedUser,
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.VerifiedUser,
                                             contentDescription = null,
-                                            tint = if (tokenVerified == true) Color(0xFF4CAF50) else Color(0xFFE53935),
+                                            tint = if (tokenVerified == true) ModkeyDesign.Colors.success else ModkeyDesign.Colors.error,
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -619,21 +663,21 @@ fun ConnectDebuggerScreen(
                                                 "Подпись MD5 (token) валидна: $expectedTokenHex"
                                             else
                                                 "Внимание: токен не совпал с ожидаемым MD5 ($expectedTokenHex)",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (tokenVerified == true) Color(0xFF4CAF50) else Color(0xFFE53935)
+                                            style = ModkeyDesign.Typography.bodySmall().copy(fontWeight = FontWeight.SemiBold),
+                                            color = if (tokenVerified == true) ModkeyDesign.Colors.success else ModkeyDesign.Colors.error
                                         )
                                     }
                                 }
 
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
-                                    color = MaterialTheme.colorScheme.surface,
+                                    color = ModkeyDesign.Colors.surface,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text(
                                         text = responseResult.orEmpty(),
-                                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                        style = ModkeyDesign.Typography.bodySmall(),
+                                        fontFamily = FontFamily.Monospace,
                                         modifier = Modifier.padding(14.dp)
                                     )
                                 }
@@ -646,7 +690,11 @@ fun ConnectDebuggerScreen(
                 item {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        color = ModkeyDesign.Colors.surfaceContainer,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.3f)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -654,18 +702,22 @@ fun ConnectDebuggerScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.Code, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                ModkeyIcon(
+                                    imageVector = Icons.Filled.Code,
+                                    contentDescription = null,
+                                    tint = ModkeyDesign.Colors.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
                                     Text(
                                         text = "Готовый код интеграции Connect",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
+                                        style = ModkeyDesign.Typography.titleMedium().copy(fontWeight = FontWeight.Bold)
                                     )
                                     Text(
                                         text = "Эндпоинт: $endpointUrl",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        style = ModkeyDesign.Typography.bodySmall(),
+                                        color = ModkeyDesign.Colors.onSurfaceVariant
                                     )
                                 }
                             }
@@ -677,23 +729,23 @@ fun ConnectDebuggerScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 CodeLang.entries.forEach { lang ->
-                                    FilterChip(
+                                    ModkeyFilterChip(
                                         selected = selectedLang == lang,
                                         onClick = { selectedLang = lang },
-                                        label = { Text(lang.label) },
-                                        shape = RoundedCornerShape(12.dp)
+                                        label = lang.label
                                     )
                                 }
                             }
 
                             Surface(
                                 shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.surface,
+                                color = ModkeyDesign.Colors.surface,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = generatedCode,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                    style = ModkeyDesign.Typography.bodySmall(),
+                                    fontFamily = FontFamily.Monospace,
                                     modifier = Modifier.padding(14.dp)
                                 )
                             }
@@ -702,21 +754,31 @@ fun ConnectDebuggerScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                OutlinedButton(
+                                ModkeyButton(
                                     onClick = {
                                         val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                         cb.setPrimaryClip(ClipData.newPlainText("Modkey Code", generatedCode))
                                         Toast.makeText(context, "Код скопирован!", Toast.LENGTH_SHORT).show()
                                     },
+                                    variant = com.modkey.app.ui.components.ButtonVariant.Secondary,
                                     shape = RoundedCornerShape(14.dp),
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    ModkeyIcon(
+                                        imageVector = Icons.Filled.ContentCopy,
+                                        contentDescription = null,
+                                        tint = ModkeyDesign.Colors.onSurface,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Скопировать")
+                                    Text(
+                                        text = "Скопировать",
+                                        style = ModkeyDesign.Typography.labelLarge(),
+                                        color = ModkeyDesign.Colors.onSurface
+                                    )
                                 }
 
-                                Button(
+                                ModkeyButton(
                                     onClick = {
                                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                             type = "text/plain"
@@ -727,9 +789,18 @@ fun ConnectDebuggerScreen(
                                     shape = RoundedCornerShape(14.dp),
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    ModkeyIcon(
+                                        imageVector = Icons.Filled.Share,
+                                        contentDescription = null,
+                                        tint = ModkeyDesign.Colors.onPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Отправить")
+                                    Text(
+                                        text = "Отправить",
+                                        style = ModkeyDesign.Typography.labelLarge(),
+                                        color = ModkeyDesign.Colors.onPrimary
+                                    )
                                 }
                             }
                         }
@@ -738,7 +809,7 @@ fun ConnectDebuggerScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.navigationBarsPadding().padding(bottom = 104.dp))
             }
         }
     }

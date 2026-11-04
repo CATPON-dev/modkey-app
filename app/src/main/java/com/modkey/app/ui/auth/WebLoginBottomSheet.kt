@@ -18,7 +18,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,27 +26,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,6 +52,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.modkey.app.ModkeyApp
 import com.modkey.app.core.network.ModkeyWebAuth
+import com.modkey.app.ui.components.ModkeyBottomSheet
+import com.modkey.app.ui.components.ModkeyButton
+import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.components.ModkeyIconButton
+import com.modkey.app.ui.components.ModkeyLinearProgress
+import com.modkey.app.ui.components.ModkeyOutlinedTextField
+import com.modkey.app.ui.components.Surface
+import com.modkey.app.ui.components.Text
+import com.modkey.app.ui.theme.ModkeyDesign
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -98,7 +98,6 @@ private class ModkeyJsBridge(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun WebLoginBottomSheet(
@@ -107,7 +106,6 @@ fun WebLoginBottomSheet(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val apiClient = ModkeyApp.instance.apiClient
 
     var isLoading by remember { mutableStateOf(true) }
@@ -303,65 +301,90 @@ fun WebLoginBottomSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
+    ModkeyBottomSheet(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 16.dp)
+                .height(640.dp)
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Filled.Close, contentDescription = "Закрыть")
+                ModkeyIconButton(onClick = onDismiss, size = 36.dp, iconSize = 20.dp) {
+                    ModkeyIcon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Закрыть",
+                        tint = ModkeyDesign.Colors.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
-                Spacer(modifier = Modifier.width(6.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Вход на mod.wtf",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        style = ModkeyDesign.Typography.titleMedium().copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1
                     )
                     Text(
                         text = if (isUserLoggedIn) "Вы вошли в систему — получаем API ключ" else "Telegram / Passkey / Логин",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isUserLoggedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        style = ModkeyDesign.Typography.bodySmall(),
+                        color = if (isUserLoggedIn) ModkeyDesign.Colors.primary else ModkeyDesign.Colors.onSurfaceVariant
                     )
                 }
-                IconButton(
+                ModkeyIconButton(
                     onClick = {
                         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(currentUrl))
                         context.startActivity(browserIntent)
-                    }
+                    },
+                    size = 36.dp,
+                    iconSize = 20.dp
                 ) {
-                    Icon(Icons.Filled.OpenInBrowser, contentDescription = "Открыть в Chrome")
+                    ModkeyIcon(
+                        imageVector = Icons.Filled.OpenInBrowser,
+                        contentDescription = "Открыть в Chrome",
+                        tint = ModkeyDesign.Colors.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
-
-                IconButton(onClick = { webViewRef?.reload() }) {
-                    Icon(Icons.Filled.Refresh, contentDescription = "Обновить")
+                Spacer(modifier = Modifier.width(6.dp))
+                ModkeyIconButton(
+                    onClick = { webViewRef?.reload() },
+                    size = 36.dp,
+                    iconSize = 20.dp
+                ) {
+                    ModkeyIcon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = "Обновить",
+                        tint = ModkeyDesign.Colors.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
             if (isLoading || isExtractingKey) {
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary
+                Spacer(modifier = Modifier.height(6.dp))
+                ModkeyLinearProgress(
+                    isIndeterminate = true,
+                    color = ModkeyDesign.Colors.primary
                 )
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+                color = ModkeyDesign.Colors.surfaceContainerHigh,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.25f)
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 4.dp)
+                    .padding(vertical = 2.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -372,66 +395,88 @@ fun WebLoginBottomSheet(
                         modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.Filled.Key,
+                        ModkeyIcon(
+                            imageVector = Icons.Filled.Key,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = ModkeyDesign.Colors.primary,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (isUserLoggedIn) "Сессия активна" else "Войдите на сайте",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                            style = ModkeyDesign.Typography.bodySmall().copy(fontWeight = FontWeight.SemiBold)
                         )
                     }
 
-                    Button(
+                    ModkeyButton(
                         onClick = { tryExtractApiKeyFromAdminApi() },
                         enabled = !isExtractingKey,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                        minHeight = 40.dp
                     ) {
-                        Text(if (isExtractingKey) "Проверка..." else "Извлечь ключ API")
+                        Text(
+                            text = if (isExtractingKey) "Проверка..." else "Извлечь ключ API",
+                            style = ModkeyDesign.Typography.labelMedium(),
+                            color = ModkeyDesign.Colors.onPrimary
+                        )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 4.dp),
+                    .padding(vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedTextField(
+                ModkeyOutlinedTextField(
                     value = manualKeyInput,
                     onValueChange = { manualKeyInput = it },
-                    placeholder = { Text("Или вставьте скопированный ключ...") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
+                    placeholder = "Или вставьте скопированный ключ...",
                     trailingIcon = {
-                        IconButton(
+                        ModkeyIconButton(
                             onClick = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 val clip = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
                                 if (!clip.isNullOrBlank()) manualKeyInput = clip.trim()
-                            }
+                            },
+                            size = 24.dp,
+                            iconSize = 16.dp
                         ) {
-                            Icon(Icons.Filled.ContentPaste, contentDescription = "Вставить")
+                            ModkeyIcon(
+                                imageVector = Icons.Filled.ContentPaste,
+                                contentDescription = "Вставить",
+                                tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     },
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Button(
+                ModkeyButton(
                     onClick = {
                         if (manualKeyInput.isNotBlank()) {
                             onApiKeyExtracted(manualKeyInput.trim())
                         }
                     },
                     enabled = manualKeyInput.isNotBlank(),
-                    shape = RoundedCornerShape(14.dp)
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                    minHeight = 48.dp
                 ) {
-                    Text("Готово")
+                    Text(
+                        text = "Готово",
+                        style = ModkeyDesign.Typography.labelLarge(),
+                        color = ModkeyDesign.Colors.onPrimary
+                    )
                 }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Box(
                 modifier = Modifier
                     .weight(1f)

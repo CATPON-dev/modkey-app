@@ -80,7 +80,7 @@ class ModkeyStatusWidgetProvider : AppWidgetProvider() {
                                 apiKey = activeAccount.apiKey,
                                 softId = firstSoft.id,
                                 status = nextStatus,
-                                reason = if (nextStatus == 0) "Техработы (с виджета)" else "on"
+                                reason = if (nextStatus == 0) "Техработы (с виджета)" else null
                             )
                         } else {
                             firstSoft

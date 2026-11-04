@@ -5,11 +5,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,14 +19,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Computer
@@ -45,22 +44,6 @@ import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,7 +54,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -85,15 +69,24 @@ import com.modkey.app.core.model.SoftStatsResponse
 import com.modkey.app.core.model.SoftwareItem
 import com.modkey.app.ui.components.EmptyState
 import com.modkey.app.ui.components.LoadingBlock
+import com.modkey.app.ui.components.ModkeyCheckbox
+import com.modkey.app.ui.components.ModkeyDialog
+import com.modkey.app.ui.components.ModkeyFilterChip
+import com.modkey.app.ui.components.ModkeyIconButton
+import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.components.ModkeyOutlinedTextField
+import com.modkey.app.ui.components.ModkeySwitch
 import com.modkey.app.ui.components.QuickActionChip
 import com.modkey.app.ui.components.SectionHeader
 import com.modkey.app.ui.components.StatCard
 import com.modkey.app.ui.components.StatusBadge
+import com.modkey.app.ui.components.Surface
+import com.modkey.app.ui.components.Text
+import com.modkey.app.ui.theme.ModkeyDesign
 import com.modkey.app.ui.theme.connectedItemShape
-import com.modkey.app.ui.theme.expressiveClick
+import com.modkey.app.ui.theme.modkeyPress
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     account: SavedAccount,
@@ -172,19 +165,21 @@ fun DashboardScreen(
         refreshDashboardData()
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ModkeyDesign.Colors.background)
+            .statusBarsPadding()
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Dashboard Header Bar
             item {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -193,9 +188,9 @@ fun DashboardScreen(
                     // Profile button / Account Switcher
                     Surface(
                         shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
-                        modifier = Modifier.expressiveClick {
+                        color = ModkeyDesign.Colors.surfaceContainerHigh,
+                        border = BorderStroke(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.4f)),
+                        modifier = Modifier.modkeyPress {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             showAccountSwitcherSheet = true
                         }
@@ -204,40 +199,43 @@ fun DashboardScreen(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(26.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clipCircle()
+                                    .background(ModkeyDesign.Colors.primary, CircleShape),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Filled.VpnKey,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                }
+                                ModkeyIcon(
+                                    imageVector = Icons.Filled.VpnKey,
+                                    contentDescription = null,
+                                    tint = ModkeyDesign.Colors.onPrimary,
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(
                                     text = meInfo?.username?.ifBlank { account.label } ?: account.label,
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                    style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.Bold)
                                 )
                                 Text(
                                     text = if (meInfo != null) "${meInfo!!.balance} ₽ • Сменить ▾" else "Сменить ▾",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary
+                                    style = ModkeyDesign.Typography.labelSmall(),
+                                    color = ModkeyDesign.Colors.primary
                                 )
                             }
                         }
                     }
 
+                    Spacer(modifier = Modifier.width(8.dp))
+
                     // Software Selector Chip
                     Surface(
                         shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.expressiveClick {
+                        color = ModkeyDesign.Colors.primaryContainer,
+                        border = BorderStroke(1.dp, ModkeyDesign.Colors.primary.copy(alpha = 0.4f)),
+                        modifier = Modifier.weight(1f, fill = false).modkeyPress {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             showSoftPickerSheet = true
                         }
@@ -246,32 +244,36 @@ fun DashboardScreen(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                Icons.Filled.Computer,
+                            ModkeyIcon(
+                                imageVector = Icons.Filled.Computer,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(17.dp)
+                                tint = ModkeyDesign.Colors.primary,
+                                modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = selectedSoftware?.name ?: "Выбрать софт",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.Bold),
+                                color = ModkeyDesign.Colors.primary
                             )
                         }
                     }
 
+                    Spacer(modifier = Modifier.width(6.dp))
+
                     // Refresh Button
-                    IconButton(
+                    ModkeyIconButton(
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             refreshDashboardData()
-                        }
+                        },
+                        iconSize = 22.dp
                     ) {
-                        Icon(
-                            Icons.Filled.Refresh,
+                        ModkeyIcon(
+                            imageVector = Icons.Filled.Refresh,
                             contentDescription = "Обновить",
-                            tint = MaterialTheme.colorScheme.onSurface
+                            tint = ModkeyDesign.Colors.primary,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
@@ -296,9 +298,10 @@ fun DashboardScreen(
                 if (currentSoft != null) {
                     item {
                         val isOnline = currentSoft.status == 1
-                        val cardBg = if (isOnline) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
-                        val iconColor = if (isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                        val titleColor = if (isOnline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                        val cardBg = if (isOnline) ModkeyDesign.Colors.primaryContainer.copy(alpha = 0.5f)
+                        else ModkeyDesign.Colors.errorContainer.copy(alpha = 0.8f)
+                        val iconColor = if (isOnline) ModkeyDesign.Colors.primary else ModkeyDesign.Colors.error
+                        val titleColor = if (isOnline) ModkeyDesign.Colors.onSurface else ModkeyDesign.Colors.onErrorContainer
 
                         Surface(
                             shape = RoundedCornerShape(22.dp),
@@ -317,36 +320,36 @@ fun DashboardScreen(
                                     modifier = Modifier.weight(1f),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = iconColor.copy(alpha = 0.18f),
-                                        modifier = Modifier.size(38.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clipCircle()
+                                            .background(iconColor.copy(alpha = 0.18f), CircleShape),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                imageVector = if (isOnline) Icons.Filled.CheckCircle else Icons.Filled.Warning,
-                                                contentDescription = null,
-                                                tint = iconColor,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
+                                        ModkeyIcon(
+                                            imageVector = if (isOnline) Icons.Filled.CheckCircle else Icons.Filled.Warning,
+                                            contentDescription = null,
+                                            tint = iconColor,
+                                            modifier = Modifier.size(19.dp)
+                                        )
                                     }
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text(
                                             text = if (isOnline) "Софт в сети (Online)" else "Техработы (Offline)",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold),
                                             color = titleColor
                                         )
                                         Text(
                                             text = if (isOnline) "Клиенты авторизуются штатно" else (currentSoft.statusReason ?: "Сервер на паузе"),
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = ModkeyDesign.Typography.bodySmall(),
                                             color = titleColor.copy(alpha = 0.8f)
                                         )
                                     }
                                 }
 
-                                Switch(
+                                ModkeySwitch(
                                     checked = isOnline,
                                     onCheckedChange = { checked ->
                                         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
@@ -371,8 +374,8 @@ fun DashboardScreen(
                         QuickActionChip(
                             label = "Быстрый ключ",
                             icon = Icons.Filled.ElectricBolt,
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            containerColor = ModkeyDesign.Colors.primaryContainer,
+                            contentColor = ModkeyDesign.Colors.primary,
                             onClick = {
                                 if (currentSoft != null) showQuickCreateSheet = true
                             }
@@ -481,7 +484,7 @@ fun DashboardScreen(
                             value = "$activeKeys",
                             icon = Icons.Filled.VpnKey,
                             subtitle = "из $totalKeys всего",
-                            badgeColor = MaterialTheme.colorScheme.primary,
+                            badgeColor = ModkeyDesign.Colors.primary,
                             modifier = Modifier.weight(1f),
                             onClick = onNavigateToKeys
                         )
@@ -491,7 +494,7 @@ fun DashboardScreen(
                             value = "$pausedKeys",
                             icon = Icons.Filled.Pause,
                             subtitle = "заморожено",
-                            badgeColor = MaterialTheme.colorScheme.tertiary,
+                            badgeColor = ModkeyDesign.Colors.warning,
                             modifier = Modifier.weight(1f),
                             onClick = onNavigateToKeys
                         )
@@ -512,7 +515,7 @@ fun DashboardScreen(
                             value = "$blockedKeys",
                             icon = Icons.Filled.Block,
                             subtitle = "доступ закрыт",
-                            badgeColor = MaterialTheme.colorScheme.error,
+                            badgeColor = ModkeyDesign.Colors.error,
                             modifier = Modifier.weight(1f),
                             onClick = onNavigateToKeys
                         )
@@ -522,7 +525,7 @@ fun DashboardScreen(
                             value = "$expiredKeys",
                             icon = Icons.Filled.HourglassBottom,
                             subtitle = "срок завершен",
-                            badgeColor = MaterialTheme.colorScheme.outline,
+                            badgeColor = ModkeyDesign.Colors.onSurfaceVariant,
                             modifier = Modifier.weight(1f),
                             onClick = onNavigateToKeys
                         )
@@ -543,7 +546,7 @@ fun DashboardScreen(
                             value = "$domainsCount",
                             icon = Icons.Filled.Language,
                             subtitle = "управление SSL",
-                            badgeColor = MaterialTheme.colorScheme.secondary,
+                            badgeColor = ModkeyDesign.Colors.success,
                             modifier = Modifier.weight(1f),
                             onClick = {
                                 if (selectedSoftware != null) showDomainsSheet = true
@@ -555,7 +558,7 @@ fun DashboardScreen(
                             value = "$usersCount",
                             icon = Icons.Filled.People,
                             subtitle = "клиентских аккаунтов",
-                            badgeColor = MaterialTheme.colorScheme.primary,
+                            badgeColor = ModkeyDesign.Colors.primary,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -583,8 +586,8 @@ fun DashboardScreen(
                     itemsIndexed(recentKeys) { index, keyItem ->
                         Surface(
                             shape = connectedItemShape(index, recentKeys.size),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+                            color = ModkeyDesign.Colors.surfaceContainerHigh,
+                            border = BorderStroke(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.25f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -593,44 +596,49 @@ fun DashboardScreen(
                                     .padding(horizontal = 14.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = if (keyItem.isOnline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
-                                    modifier = Modifier.size(36.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clipCircle()
+                                        .background(
+                                            if (keyItem.isOnline) ModkeyDesign.Colors.primaryContainer
+                                            else ModkeyDesign.Colors.errorContainer,
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Filled.VpnKey,
-                                            contentDescription = null,
-                                            tint = if (keyItem.isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(17.dp)
-                                        )
-                                    }
+                                    ModkeyIcon(
+                                        imageVector = Icons.Filled.VpnKey,
+                                        contentDescription = null,
+                                        tint = if (keyItem.isOnline) ModkeyDesign.Colors.primary else ModkeyDesign.Colors.error,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = keyItem.key,
-                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold),
                                         maxLines = 1
                                     )
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.height(3.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         StatusBadge(
                                             text = keyItem.keyType,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = ModkeyDesign.Colors.primary
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = "HWID: ${keyItem.devicesUsed}/${keyItem.maxDevices} • Сбросов: ${keyItem.hwidResetsUsed}/${keyItem.hwidResetLimit}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            style = ModkeyDesign.Typography.bodySmall(),
+                                            color = ModkeyDesign.Colors.onSurfaceVariant,
+                                            maxLines = 1
                                         )
                                     }
                                 }
 
                                 // Quick Reset HWID button
-                                IconButton(
+                                ModkeyIconButton(
                                     onClick = {
                                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                         if (currentSoft != null) {
@@ -644,28 +652,34 @@ fun DashboardScreen(
                                                 }
                                             }
                                         }
-                                    }
+                                    },
+                                    size = 38.dp,
+                                    iconSize = 18.dp
                                 ) {
-                                    Icon(
-                                        Icons.Filled.RestartAlt,
+                                    ModkeyIcon(
+                                        imageVector = Icons.Filled.RestartAlt,
                                         contentDescription = "Сбросить HWID",
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = ModkeyDesign.Colors.primary,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
 
                                 // Quick Copy
-                                IconButton(
+                                ModkeyIconButton(
                                     onClick = {
                                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                         clipboard.setPrimaryClip(ClipData.newPlainText("Modkey", keyItem.key))
                                         Toast.makeText(context, "Ключ скопирован", Toast.LENGTH_SHORT).show()
-                                    }
+                                    },
+                                    size = 38.dp,
+                                    iconSize = 18.dp
                                 ) {
-                                    Icon(
-                                        Icons.Filled.ContentCopy,
+                                    ModkeyIcon(
+                                        imageVector = Icons.Filled.ContentCopy,
                                         contentDescription = "Скопировать",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
@@ -674,7 +688,7 @@ fun DashboardScreen(
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(100.dp))
                 }
             }
         }
@@ -722,76 +736,70 @@ fun DashboardScreen(
         var hwidLimitInput by remember(currentSoft) { mutableStateOf(currentSoft.hwidResetLimit.toString()) }
         var testConnectChecked by remember(currentSoft) { mutableStateOf(currentSoft.testConnectEnabled) }
 
-        AlertDialog(
-            onDismissRequest = { showSoftSettingsDialog = false },
-            title = { Text("Настройки софта #${currentSoft.id}") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = softNameInput,
-                        onValueChange = { softNameInput = it },
-                        label = { Text("Название софта") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    OutlinedTextField(
-                        value = keyFormatInput,
-                        onValueChange = { keyFormatInput = it },
-                        label = { Text("Формат ключей (key_format)") },
-                        placeholder = { Text("{NAME}-{DURATION}-{RANDOM:8}") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    OutlinedTextField(
-                        value = hwidLimitInput,
-                        onValueChange = { hwidLimitInput = it },
-                        label = { Text("Лимит сбросов HWID по умолчанию") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = testConnectChecked,
-                            onCheckedChange = { testConnectChecked = it }
+        ModkeyDialog(
+            title = "Настройки софта #${currentSoft.id}",
+            onDismiss = { showSoftSettingsDialog = false },
+            confirmLabel = "Сохранить",
+            onConfirm = {
+                scope.launch {
+                    try {
+                        apiClient.editSoftSettings(
+                            apiKey = account.apiKey,
+                            softId = currentSoft.id,
+                            name = softNameInput.trim(),
+                            keyFormat = keyFormatInput.trim(),
+                            hwidResetLimit = hwidLimitInput.toIntOrNull() ?: currentSoft.hwidResetLimit,
+                            testConnectEnabled = testConnectChecked
                         )
-                        Text(
-                            text = "Включить Test Connect эндпоинт",
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        showSoftSettingsDialog = false
+                        Toast.makeText(context, "Настройки софта сохранены!", Toast.LENGTH_SHORT).show()
+                        refreshDashboardData()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message ?: "Ошибка сохранения", Toast.LENGTH_SHORT).show()
                     }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                apiClient.editSoftSettings(
-                                    apiKey = account.apiKey,
-                                    softId = currentSoft.id,
-                                    name = softNameInput.trim(),
-                                    keyFormat = keyFormatInput.trim(),
-                                    hwidResetLimit = hwidLimitInput.toIntOrNull() ?: currentSoft.hwidResetLimit,
-                                    testConnectEnabled = testConnectChecked
-                                )
-                                showSoftSettingsDialog = false
-                                Toast.makeText(context, "Настройки софта сохранены!", Toast.LENGTH_SHORT).show()
-                                refreshDashboardData()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, e.message ?: "Ошибка сохранения", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                ) {
-                    Text("Сохранить")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSoftSettingsDialog = false }) {
-                    Text("Отмена")
                 }
             }
-        )
+        ) {
+            val scrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(330.dp)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                ModkeyOutlinedTextField(
+                    value = softNameInput,
+                    onValueChange = { softNameInput = it },
+                    label = "Название софта"
+                )
+                ModkeyOutlinedTextField(
+                    value = keyFormatInput,
+                    onValueChange = { keyFormatInput = it },
+                    label = "Формат ключей (key_format)",
+                    placeholder = "{NAME}-{DURATION}-{RANDOM:8}"
+                )
+                ModkeyOutlinedTextField(
+                    value = hwidLimitInput,
+                    onValueChange = { hwidLimitInput = it },
+                    label = "Лимит сбросов HWID по умолчанию"
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.modkeyPress { testConnectChecked = !testConnectChecked }
+                ) {
+                    ModkeyCheckbox(
+                        checked = testConnectChecked,
+                        onCheckedChange = { testConnectChecked = it }
+                    )
+                    Text(
+                        text = "Включить Test Connect эндпоинт",
+                        style = ModkeyDesign.Typography.bodySmall()
+                    )
+                }
+            }
+        }
     }
 
     // Modal: Account Switcher
@@ -811,105 +819,85 @@ fun DashboardScreen(
 
     // Dialog: Extend Keys (+Days)
     if (showExtendKeysDialog && selectedSoftware != null) {
-        AlertDialog(
-            onDismissRequest = { showExtendKeysDialog = false },
-            title = { Text("Массовое продление ключей") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Добавьте дни компенсации ко всем активированным ключам софта «${selectedSoftware!!.name}».",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    OutlinedTextField(
-                        value = extendDaysInput,
-                        onValueChange = { extendDaysInput = it },
-                        label = { Text("Количество дней") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val days = extendDaysInput.toIntOrNull() ?: 1
-                        scope.launch {
-                            try {
-                                apiClient.extendKeys(account.apiKey, selectedSoftware!!.id, days)
-                                Toast.makeText(context, "Ключи продлены на $days дн.", Toast.LENGTH_SHORT).show()
-                                showExtendKeysDialog = false
-                                refreshDashboardData()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
-                            }
-                        }
+        ModkeyDialog(
+            title = "Массовое продление ключей",
+            onDismiss = { showExtendKeysDialog = false },
+            confirmLabel = "Продлить",
+            onConfirm = {
+                val days = extendDaysInput.toIntOrNull() ?: 1
+                scope.launch {
+                    try {
+                        apiClient.extendKeys(account.apiKey, selectedSoftware!!.id, days)
+                        Toast.makeText(context, "Ключи продлены на $days дн.", Toast.LENGTH_SHORT).show()
+                        showExtendKeysDialog = false
+                        refreshDashboardData()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                     }
-                ) {
-                    Text("Продлить")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExtendKeysDialog = false }) {
-                    Text("Отмена")
                 }
             }
-        )
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Добавьте дни компенсации ко всем активированным ключам софта «${selectedSoftware!!.name}».",
+                    style = ModkeyDesign.Typography.bodyMedium(),
+                    color = ModkeyDesign.Colors.onSurfaceVariant
+                )
+                ModkeyOutlinedTextField(
+                    value = extendDaysInput,
+                    onValueChange = { extendDaysInput = it },
+                    label = "Количество дней"
+                )
+            }
+        }
     }
 
     // Dialog: Emergency Status Change
     if (showEmergencyConfirmDialog && selectedSoftware != null) {
-        AlertDialog(
-            onDismissRequest = { showEmergencyConfirmDialog = false },
-            title = {
-                Text(if (emergencyTargetStatus == 1) "Включить софт (Online)?" else "Включить техработы (Offline)?")
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = if (emergencyTargetStatus == 1)
-                            "Софт станет доступен для авторизации клиентов."
-                        else
-                            "Клиенты будут получать сообщение об ошибке при попытке входа в игру.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    if (emergencyTargetStatus == 0) {
-                        OutlinedTextField(
-                            value = emergencyReasonInput,
-                            onValueChange = { emergencyReasonInput = it },
-                            label = { Text("Причина отключения") },
-                            shape = RoundedCornerShape(14.dp)
+        ModkeyDialog(
+            title = if (emergencyTargetStatus == 1) "Включить софт (Online)?" else "Включить техработы (Offline)?",
+            onDismiss = { showEmergencyConfirmDialog = false },
+            confirmLabel = if (emergencyTargetStatus == 1) "Включить" else "Отключить софт",
+            confirmContainerColor = if (emergencyTargetStatus == 0) ModkeyDesign.Colors.error else ModkeyDesign.Colors.primary,
+            confirmContentColor = ModkeyDesign.Colors.onError,
+            onConfirm = {
+                scope.launch {
+                    try {
+                        apiClient.editSoftStatus(
+                            apiKey = account.apiKey,
+                            softId = selectedSoftware!!.id,
+                            status = emergencyTargetStatus,
+                            reason = if (emergencyTargetStatus == 0) emergencyReasonInput else null
                         )
+                        showEmergencyConfirmDialog = false
+                        refreshDashboardData()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                     }
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                apiClient.editSoftStatus(
-                                    apiKey = account.apiKey,
-                                    softId = selectedSoftware!!.id,
-                                    status = emergencyTargetStatus,
-                                    reason = if (emergencyTargetStatus == 0) emergencyReasonInput else "on"
-                                )
-                                showEmergencyConfirmDialog = false
-                                refreshDashboardData()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    },
-                    colors = if (emergencyTargetStatus == 0) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
-                ) {
-                    Text(if (emergencyTargetStatus == 1) "Включить" else "Отключить софт")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEmergencyConfirmDialog = false }) {
-                    Text("Отмена")
+            }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = if (emergencyTargetStatus == 1)
+                        "Софт станет доступен для авторизации клиентов."
+                    else
+                        "Клиенты будут получать сообщение об ошибке при попытке входа в игру.",
+                    style = ModkeyDesign.Typography.bodyMedium(),
+                    color = ModkeyDesign.Colors.onSurfaceVariant
+                )
+                if (emergencyTargetStatus == 0) {
+                    ModkeyOutlinedTextField(
+                        value = emergencyReasonInput,
+                        onValueChange = { emergencyReasonInput = it },
+                        label = "Причина отключения"
+                    )
                 }
             }
-        )
+        }
     }
 }
+
+private fun Modifier.clipCircle(): Modifier = this.then(
+    Modifier.clip(CircleShape)
+)

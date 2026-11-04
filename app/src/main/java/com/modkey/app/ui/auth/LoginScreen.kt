@@ -3,9 +3,9 @@ package com.modkey.app.ui.auth
 import android.content.ClipboardManager
 import android.content.Context
 import android.view.HapticFeedbackConstants
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +23,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentPaste
@@ -35,18 +38,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VpnKey
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -57,23 +48,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.modkey.app.ModkeyApp
 import com.modkey.app.core.model.SavedAccount
 import com.modkey.app.core.network.ModkeyWebAuth
+import com.modkey.app.ui.components.ModkeyButton
+import com.modkey.app.ui.components.ModkeyIconButton
+import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.components.ModkeyOutlinedTextField
 import com.modkey.app.ui.components.SectionHeader
+import com.modkey.app.ui.components.StatusBadge
+import com.modkey.app.ui.components.CircularLoader
+import com.modkey.app.ui.components.Surface
+import com.modkey.app.ui.components.SurfaceChip
+import com.modkey.app.ui.components.Text
+import com.modkey.app.ui.theme.ModkeyDesign
 import com.modkey.app.ui.theme.connectedItemShape
-import com.modkey.app.ui.theme.expressiveClick
+import com.modkey.app.ui.theme.modkeyPress
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     savedAccounts: List<SavedAccount>,
@@ -169,7 +168,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(ModkeyDesign.Colors.background)
             .statusBarsPadding()
     ) {
         LazyColumn(
@@ -184,30 +183,35 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(26.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(64.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(26.dp))
+                            .background(ModkeyDesign.Colors.primaryContainer, RoundedCornerShape(26.dp))
+                            .border(
+                                1.dp,
+                                ModkeyDesign.Colors.primary.copy(alpha = 0.35f),
+                                RoundedCornerShape(26.dp)
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Filled.Key,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
+                        ModkeyIcon(
+                            imageVector = Icons.Filled.Key,
+                            contentDescription = null,
+                            tint = ModkeyDesign.Colors.primary,
+                            modifier = Modifier.size(30.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Modkey Platform",
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = ModkeyDesign.Typography.headlineLarge().copy(fontWeight = FontWeight.ExtraBold),
+                        color = ModkeyDesign.Colors.onSurface
                     )
                     Text(
                         text = "Управление софтом, лицензиями и клиентами",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = ModkeyDesign.Typography.bodySmall(),
+                        color = ModkeyDesign.Colors.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -223,11 +227,11 @@ fun LoginScreen(
                 itemsIndexed(savedAccounts) { index, account ->
                     Surface(
                         shape = connectedItemShape(index, savedAccounts.size),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
+                        color = ModkeyDesign.Colors.surfaceContainerHigh,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.25f)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .expressiveClick {
+                            .modkeyPress {
                                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                 scope.launch {
                                     accountManager.selectAccount(account.id)
@@ -243,14 +247,14 @@ fun LoginScreen(
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                color = ModkeyDesign.Colors.primary.copy(alpha = 0.15f),
                                 modifier = Modifier.size(38.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(
+                                    ModkeyIcon(
                                         imageVector = Icons.Filled.Person,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = ModkeyDesign.Colors.primary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -259,26 +263,28 @@ fun LoginScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = account.label,
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold),
+                                    color = ModkeyDesign.Colors.onSurface
                                 )
                                 Text(
                                     text = "Ключ: ••••••••${account.apiKey.takeLast(6)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = ModkeyDesign.Typography.bodySmall(),
+                                    color = ModkeyDesign.Colors.onSurfaceVariant
                                 )
                             }
-                            IconButton(
+                            ModkeyIconButton(
                                 onClick = {
                                     scope.launch {
                                         accountManager.removeAccount(account.id)
                                     }
-                                }
+                                },
+                                size = 36.dp,
+                                iconSize = 18.dp,
+                                tint = ModkeyDesign.Colors.error.copy(alpha = 0.7f)
                             ) {
-                                Icon(
+                                ModkeyIcon(
                                     imageVector = Icons.Filled.Delete,
                                     contentDescription = "Удалить",
-                                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -293,36 +299,39 @@ fun LoginScreen(
                     subtitle = "Выберите предпочтительный способ входа"
                 )
 
-                SecondaryTabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ModkeyDesign.Colors.surfaceContainerLow, RoundedCornerShape(16.dp))
+                        .padding(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = {
-                            selectedTab = 0
-                            validationError = null
-                        },
-                        text = { Text("API Ключ") }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = {
-                            selectedTab = 1
-                            validationError = null
-                        },
-                        text = { Text("Логин / Пароль") }
-                    )
-                    Tab(
-                        selected = selectedTab == 2,
-                        onClick = {
-                            selectedTab = 2
-                            validationError = null
-                        },
-                        text = { Text("Telegram / Web") }
-                    )
+                    val tabs = listOf("API Ключ" to 0, "Логин / Пароль" to 1, "Telegram / Web" to 2)
+                    tabs.forEach { (label, idx) ->
+                        val isSelected = selectedTab == idx
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(13.dp))
+                                .background(
+                                    if (isSelected) ModkeyDesign.Colors.primary else Color.Transparent,
+                                    RoundedCornerShape(13.dp)
+                                )
+                                .modkeyPress { selectedTab = idx; validationError = null }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.Bold),
+                                color = if (isSelected) ModkeyDesign.Colors.onPrimary
+                                else ModkeyDesign.Colors.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1
+                            )
+                        }
+                    }
                 }
             }
 
@@ -330,8 +339,8 @@ fun LoginScreen(
                 item {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+                        color = ModkeyDesign.Colors.surfaceContainer,
+                        border = BorderStroke(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.2f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -342,31 +351,28 @@ fun LoginScreen(
                         ) {
                             Text(
                                 text = "Вход по API Ключу",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                style = ModkeyDesign.Typography.titleMedium().copy(fontWeight = FontWeight.Bold)
                             )
 
-                            OutlinedTextField(
+                            ModkeyOutlinedTextField(
                                 value = accountLabelInput,
                                 onValueChange = { accountLabelInput = it },
-                                label = { Text("Название профиля (метка)") },
-                                placeholder = { Text("Например: Основной софт") },
-                                singleLine = true,
-                                shape = RoundedCornerShape(14.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                label = "Название профиля (метка)",
+                                placeholder = "Например: Основной софт",
+                                shape = RoundedCornerShape(14.dp)
                             )
 
-                            OutlinedTextField(
+                            ModkeyOutlinedTextField(
                                 value = apiKeyInput,
                                 onValueChange = {
                                     apiKeyInput = it
                                     validationError = null
                                 },
-                                label = { Text("API Ключ") },
-                                placeholder = { Text("Вставьте ключ из mod.wtf/admin/api") },
-                                singleLine = true,
+                                label = "API Ключ",
+                                placeholder = "Вставьте ключ из mod.wtf/admin/api",
                                 shape = RoundedCornerShape(14.dp),
                                 trailingIcon = {
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                             val clip = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
@@ -374,58 +380,63 @@ fun LoginScreen(
                                                 apiKeyInput = clip.trim()
                                                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                             }
-                                        }
+                                        },
+                                        size = 36.dp,
+                                        iconSize = 18.dp
                                     ) {
-                                        Icon(Icons.Filled.ContentPaste, contentDescription = "Вставить")
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.ContentPaste,
+                                            contentDescription = "Вставить",
+                                            modifier = Modifier.size(18.dp)
+                                        )
                                     }
-                                },
-                                modifier = Modifier.fillMaxWidth()
+                                }
                             )
 
-                            AnimatedVisibility(visible = validationError != null) {
+                            if (validationError != null) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(12.dp))
+                                        .background(ModkeyDesign.Colors.errorContainer, RoundedCornerShape(12.dp))
                                         .padding(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
+                                    ModkeyIcon(
                                         Icons.Filled.Error,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
+                                        tint = ModkeyDesign.Colors.error,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = validationError.orEmpty(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                        style = ModkeyDesign.Typography.bodySmall(),
+                                        color = ModkeyDesign.Colors.onErrorContainer
                                     )
                                 }
                             }
 
-                            Button(
+                            ModkeyButton(
                                 onClick = { validateApiKeyAndProceed(apiKeyInput, accountLabelInput) },
                                 enabled = !isValidating && apiKeyInput.isNotBlank(),
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(50.dp)
-                                    .expressiveClick(enabled = !isValidating && apiKeyInput.isNotBlank()) {
-                                        validateApiKeyAndProceed(apiKeyInput, accountLabelInput)
-                                    }
                             ) {
                                 if (isValidating) {
-                                    CircularProgressIndicator(
+                                    CircularLoader(
                                         modifier = Modifier.size(20.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.dp
+                                        color = ModkeyDesign.Colors.onPrimary
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Проверка ключа...")
                                 } else {
-                                    Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    ModkeyIcon(
+                                        Icons.Filled.CheckCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Войти и сохранить")
                                 }
@@ -433,8 +444,8 @@ fun LoginScreen(
 
                             Text(
                                 text = "💡 API-ключ берется из mod.wtf/admin/api. Telegram должен быть привязан к аккаунту.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = ModkeyDesign.Typography.bodySmall(),
+                                color = ModkeyDesign.Colors.onSurfaceVariant
                             )
                         }
                     }
@@ -443,8 +454,8 @@ fun LoginScreen(
                 item {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+                        color = ModkeyDesign.Colors.surfaceContainer,
+                        border = BorderStroke(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.2f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -455,100 +466,109 @@ fun LoginScreen(
                         ) {
                             Text(
                                 text = "Вход по логину и паролю mod.wtf",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                style = ModkeyDesign.Typography.titleMedium().copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
                                 text = "Приложение автоматически авторизуется на сайте и подтянет ваш API ключ без необходимости открывать браузер.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = ModkeyDesign.Typography.bodySmall(),
+                                color = ModkeyDesign.Colors.onSurfaceVariant
                             )
 
-                            OutlinedTextField(
+                            ModkeyOutlinedTextField(
                                 value = usernameInput,
                                 onValueChange = {
                                     usernameInput = it
                                     validationError = null
                                 },
-                                label = { Text("Имя пользователя (Username)") },
-                                placeholder = { Text("Ваш логин на mod.wtf") },
-                                singleLine = true,
+                                label = "Имя пользователя (Username)",
+                                placeholder = "Ваш логин на mod.wtf",
                                 shape = RoundedCornerShape(14.dp),
                                 leadingIcon = {
-                                    Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(20.dp))
-                                },
-                                modifier = Modifier.fillMaxWidth()
+                                    ModkeyIcon(
+                                        Icons.Filled.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             )
 
-                            OutlinedTextField(
+                            ModkeyOutlinedTextField(
                                 value = passwordInput,
                                 onValueChange = {
                                     passwordInput = it
                                     validationError = null
                                 },
-                                label = { Text("Пароль") },
-                                placeholder = { Text("Ваш пароль") },
-                                singleLine = true,
+                                label = "Пароль",
+                                placeholder = "Ваш пароль",
+                                shape = RoundedCornerShape(14.dp),
                                 visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                shape = RoundedCornerShape(14.dp),
                                 leadingIcon = {
-                                    Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    ModkeyIcon(
+                                        Icons.Filled.Lock,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 },
                                 trailingIcon = {
-                                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                                        Icon(
+                                    ModkeyIconButton(
+                                        onClick = { isPasswordVisible = !isPasswordVisible },
+                                        size = 36.dp,
+                                        iconSize = 18.dp
+                                    ) {
+                                        ModkeyIcon(
                                             if (isPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                            contentDescription = if (isPasswordVisible) "Скрыть" else "Показать"
+                                            contentDescription = if (isPasswordVisible) "Скрыть" else "Показать",
+                                            modifier = Modifier.size(18.dp)
                                         )
                                     }
-                                },
-                                modifier = Modifier.fillMaxWidth()
+                                }
                             )
 
-                            AnimatedVisibility(visible = validationError != null) {
+                            if (validationError != null) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(12.dp))
+                                        .background(ModkeyDesign.Colors.errorContainer, RoundedCornerShape(12.dp))
                                         .padding(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
+                                    ModkeyIcon(
                                         Icons.Filled.Error,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
+                                        tint = ModkeyDesign.Colors.error,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = validationError.orEmpty(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                        style = ModkeyDesign.Typography.bodySmall(),
+                                        color = ModkeyDesign.Colors.onErrorContainer
                                     )
                                 }
                             }
 
-                            Button(
+                            ModkeyButton(
                                 onClick = { loginWithUsernamePassword() },
                                 enabled = !isValidating && usernameInput.isNotBlank() && passwordInput.isNotBlank(),
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(50.dp)
-                                    .expressiveClick(enabled = !isValidating && usernameInput.isNotBlank() && passwordInput.isNotBlank()) {
-                                        loginWithUsernamePassword()
-                                    }
                             ) {
                                 if (isValidating) {
-                                    CircularProgressIndicator(
+                                    CircularLoader(
                                         modifier = Modifier.size(20.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.dp
+                                        color = ModkeyDesign.Colors.onPrimary
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Авторизация...")
                                 } else {
-                                    Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    ModkeyIcon(
+                                        Icons.Filled.CheckCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Войти по логину")
                                 }
@@ -560,8 +580,8 @@ fun LoginScreen(
                 item {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+                        color = ModkeyDesign.Colors.surfaceContainer,
+                        border = BorderStroke(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.2f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -572,23 +592,26 @@ fun LoginScreen(
                         ) {
                             Text(
                                 text = "Вход через Telegram / Web",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                style = ModkeyDesign.Typography.titleMedium().copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
                                 text = "Войдите через официальный виджет Telegram или откройте сайт mod.wtf в Chrome. Приложение автоматически извлечет ваш API ключ.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = ModkeyDesign.Typography.bodySmall(),
+                                color = ModkeyDesign.Colors.onSurfaceVariant
                             )
 
-                            Button(
+                            ModkeyButton(
                                 onClick = { showWebLoginSheet = true },
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(50.dp)
-                                    .expressiveClick { showWebLoginSheet = true }
                             ) {
-                                Icon(Icons.Filled.Language, contentDescription = null, modifier = Modifier.size(18.dp))
+                                ModkeyIcon(
+                                    Icons.Filled.Language,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Открыть окно входа mod.wtf")
                             }

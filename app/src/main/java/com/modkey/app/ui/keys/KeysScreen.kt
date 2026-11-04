@@ -6,16 +6,20 @@ import android.content.Context
 import android.content.Intent
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -37,22 +41,6 @@ import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.VpnKey
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,10 +61,22 @@ import com.modkey.app.core.model.SavedAccount
 import com.modkey.app.core.model.SoftwareItem
 import com.modkey.app.ui.components.EmptyState
 import com.modkey.app.ui.components.LoadingBlock
+import com.modkey.app.ui.components.ModkeyFab
+import com.modkey.app.ui.components.ModkeyFilterChip
+import com.modkey.app.ui.components.ModkeyDialog
+import com.modkey.app.ui.components.ModkeyIconButton
+import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.components.ModkeyOutlinedTextField
 import com.modkey.app.ui.components.SectionHeader
+import com.modkey.app.ui.components.StatCard
 import com.modkey.app.ui.components.StatusBadge
+import com.modkey.app.ui.components.Surface
+import com.modkey.app.ui.components.SurfaceChip
+import com.modkey.app.ui.components.Text
 import com.modkey.app.ui.dashboard.QuickCreateKeyBottomSheet
+import com.modkey.app.ui.theme.ModkeyDesign
 import com.modkey.app.ui.theme.connectedItemShape
+import com.modkey.app.ui.theme.modkeyPress
 import kotlinx.coroutines.launch
 
 private enum class KeyFilter(val label: String) {
@@ -88,7 +88,6 @@ private enum class KeyFilter(val label: String) {
     INJECTOR("INJECTOR")
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KeysScreen(
     account: SavedAccount,
@@ -162,31 +161,20 @@ fun KeysScreen(
         loadKeys()
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButton = {
-            val selectedSoft = softwareList.find { it.id == selectedSoftId }
-            if (selectedSoft != null) {
-                FloatingActionButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        showCreateSheet = true
-                    },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Создать ключ")
-                }
-            }
-        }
-    ) { innerPadding ->
+    val selectedSoft = softwareList.find { it.id == selectedSoftId }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ModkeyDesign.Colors.background)
+            .statusBarsPadding()
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Top Header + Bulk Cleanup & Export buttons
             Row(
@@ -197,57 +185,101 @@ fun KeysScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Ключи доступа ($totalKeysCount)",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold
+                        style = ModkeyDesign.Typography.titleLarge().copy(fontWeight = FontWeight.ExtraBold)
                     )
                     Text(
                         text = "Управление, фильтры, экспорт и HWID",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = ModkeyDesign.Typography.bodySmall(),
+                        color = ModkeyDesign.Colors.onSurfaceVariant
                     )
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip(
+                    SurfaceChip(
                         onClick = { showBulkCleanupDialog = true },
-                        label = { Text("Очистка") },
-                        leadingIcon = {
-                            Icon(Icons.Filled.CleaningServices, contentDescription = null, modifier = Modifier.size(16.dp))
-                        },
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    AssistChip(
+                        shape = ModkeyDesign.Shapes.small,
+                        color = ModkeyDesign.Colors.surfaceContainerHigh
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+                        ) {
+                            ModkeyIcon(
+                                imageVector = Icons.Filled.CleaningServices,
+                                contentDescription = null,
+                                tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "Очистка",
+                                style = ModkeyDesign.Typography.labelSmall().copy(fontWeight = FontWeight.Bold),
+                                color = ModkeyDesign.Colors.onSurface
+                            )
+                        }
+                    }
+                    SurfaceChip(
                         onClick = { showExportDialog = true },
-                        label = { Text("Экспорт") },
-                        leadingIcon = {
-                            Icon(Icons.Filled.IosShare, contentDescription = null, modifier = Modifier.size(16.dp))
-                        },
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                        shape = ModkeyDesign.Shapes.small,
+                        color = ModkeyDesign.Colors.surfaceContainerHigh
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+                        ) {
+                            ModkeyIcon(
+                                imageVector = Icons.Filled.IosShare,
+                                contentDescription = null,
+                                tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "Экспорт",
+                                style = ModkeyDesign.Typography.labelSmall().copy(fontWeight = FontWeight.Bold),
+                                color = ModkeyDesign.Colors.onSurface
+                            )
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Search Bar
-            OutlinedTextField(
+            ModkeyOutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Поиск по ключу или игре...") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                placeholder = "Поиск по ключу или игре...",
+                leadingIcon = {
+                    ModkeyIcon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = null,
+                        tint = ModkeyDesign.Colors.onSurfaceVariant,
+                        modifier = Modifier.size(19.dp)
+                    )
+                },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Filled.Clear, contentDescription = "Очистить")
+                        ModkeyIconButton(
+                            onClick = { searchQuery = "" },
+                            size = 26.dp,
+                            iconSize = 15.dp
+                        ) {
+                            ModkeyIcon(
+                                imageVector = Icons.Filled.Clear,
+                                contentDescription = "Очистить",
+                                tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                modifier = Modifier.size(15.dp)
+                            )
                         }
                     }
                 },
-                singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Filter Chips Row
             Row(
@@ -257,19 +289,18 @@ fun KeysScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 KeyFilter.entries.forEach { filter ->
-                    FilterChip(
+                    ModkeyFilterChip(
                         selected = selectedFilter == filter,
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             selectedFilter = filter
                         },
-                        label = { Text(filter.label) },
-                        shape = RoundedCornerShape(12.dp)
+                        label = filter.label
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             if (isLoading) {
                 LoadingBlock(message = "Загрузка списка ключей...")
@@ -288,9 +319,19 @@ fun KeysScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     itemsIndexed(keysList) { index, keyItem ->
+                        val statusColor = when {
+                            keyItem.isBlocked -> ModkeyDesign.Colors.error
+                            keyItem.isPaused -> ModkeyDesign.Colors.warning
+                            else -> ModkeyDesign.Colors.success
+                        }
+
                         Surface(
                             shape = connectedItemShape(index, keysList.size),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            color = ModkeyDesign.Colors.surfaceContainerHigh,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.25f)
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
@@ -301,14 +342,14 @@ fun KeysScreen(
                                 ) {
                                     Text(
                                         text = keyItem.key,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold),
+                                        color = ModkeyDesign.Colors.primary,
                                         modifier = Modifier.weight(1f)
                                     )
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     StatusBadge(
                                         text = if (keyItem.isBlocked) "Блок" else if (keyItem.isPaused) "Пауза" else "Активен",
-                                        color = if (keyItem.isBlocked) Color(0xFFE53935) else if (keyItem.isPaused) Color(0xFFFFB300) else Color(0xFF4CAF50)
+                                        color = statusColor
                                     )
                                 }
 
@@ -321,21 +362,23 @@ fun KeysScreen(
                                 ) {
                                     Text(
                                         text = "HWID: ${keyItem.devicesUsed}/${keyItem.maxDevices} • Сбросов: ${keyItem.hwidResetsUsed}/${keyItem.hwidResetLimit} • Срок: ${keyItem.duration ?: "∞"}д",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        style = ModkeyDesign.Typography.bodySmall(),
+                                        color = ModkeyDesign.Colors.onSurfaceVariant,
+                                        maxLines = 1
                                     )
                                     Text(
                                         text = keyItem.keyType,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold
+                                        style = ModkeyDesign.Typography.labelSmall(),
+                                        color = ModkeyDesign.Colors.onSurface
                                     )
                                 }
 
                                 if (!keyItem.expiredDate.isNullOrBlank()) {
+                                    Spacer(modifier = Modifier.height(3.dp))
                                     Text(
                                         text = "Истекает: ${keyItem.expiredDate}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        style = ModkeyDesign.Typography.labelSmall(),
+                                        color = ModkeyDesign.Colors.onSurfaceVariant
                                     )
                                 }
 
@@ -347,10 +390,10 @@ fun KeysScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // Reset HWID
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                            val currentSoftId = selectedSoftId ?: return@IconButton
+                                            val currentSoftId = selectedSoftId ?: return@ModkeyIconButton
                                             scope.launch {
                                                 try {
                                                     apiClient.resetKeyHwid(account.apiKey, currentSoftId, keyItem.key)
@@ -360,16 +403,23 @@ fun KeysScreen(
                                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                                 }
                                             }
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(Icons.Filled.RestartAlt, contentDescription = "Сброс HWID", tint = MaterialTheme.colorScheme.primary)
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.RestartAlt,
+                                            contentDescription = "Сброс HWID",
+                                            tint = ModkeyDesign.Colors.primary,
+                                            modifier = Modifier.size(17.dp)
+                                        )
                                     }
 
                                     // Toggle pause/resume
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                            val currentSoftId = selectedSoftId ?: return@IconButton
+                                            val currentSoftId = selectedSoftId ?: return@ModkeyIconButton
                                             scope.launch {
                                                 try {
                                                     apiClient.editKey(account.apiKey, currentSoftId, keyItem.key, active = keyItem.isPaused)
@@ -378,20 +428,23 @@ fun KeysScreen(
                                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                                 }
                                             }
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(
-                                            if (keyItem.isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                                        ModkeyIcon(
+                                            imageVector = if (keyItem.isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
                                             contentDescription = "Пауза/Пуск",
-                                            tint = if (keyItem.isPaused) Color(0xFF4CAF50) else Color(0xFFFFB300)
+                                            tint = if (keyItem.isPaused) ModkeyDesign.Colors.success else ModkeyDesign.Colors.warning,
+                                            modifier = Modifier.size(17.dp)
                                         )
                                     }
 
                                     // Block / Unblock
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                            val currentSoftId = selectedSoftId ?: return@IconButton
+                                            val currentSoftId = selectedSoftId ?: return@ModkeyIconButton
                                             scope.launch {
                                                 try {
                                                     apiClient.editKey(account.apiKey, currentSoftId, keyItem.key, status = keyItem.isBlocked)
@@ -405,52 +458,76 @@ fun KeysScreen(
                                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                                 }
                                             }
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(
-                                            if (keyItem.isBlocked) Icons.Filled.CheckCircle else Icons.Filled.Block,
+                                        ModkeyIcon(
+                                            imageVector = if (keyItem.isBlocked) Icons.Filled.CheckCircle else Icons.Filled.Block,
                                             contentDescription = "Блок/Разблок",
-                                            tint = if (keyItem.isBlocked) Color(0xFF4CAF50) else Color(0xFFE53935)
+                                            tint = if (keyItem.isBlocked) ModkeyDesign.Colors.success else ModkeyDesign.Colors.error,
+                                            modifier = Modifier.size(17.dp)
                                         )
                                     }
 
                                     // Edit / Rename Key
-                                    IconButton(
-                                        onClick = { editingKeyItem = keyItem }
+                                    ModkeyIconButton(
+                                        onClick = { editingKeyItem = keyItem },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(Icons.Filled.Edit, contentDescription = "Редактировать")
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.Edit,
+                                            contentDescription = "Редактировать",
+                                            tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                            modifier = Modifier.size(17.dp)
+                                        )
                                     }
 
                                     // Copy Key
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                             clipboard.setPrimaryClip(ClipData.newPlainText("Modkey", keyItem.key))
                                             Toast.makeText(context, "Ключ скопирован", Toast.LENGTH_SHORT).show()
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(Icons.Filled.ContentCopy, contentDescription = "Скопировать")
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.ContentCopy,
+                                            contentDescription = "Скопировать",
+                                            tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                            modifier = Modifier.size(17.dp)
+                                        )
                                     }
 
                                     // Share Key
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                                 type = "text/plain"
                                                 putExtra(Intent.EXTRA_TEXT, "🔑 Лицензионный ключ: ${keyItem.key}\n📱 Устройств: ${keyItem.maxDevices}")
                                             }
                                             context.startActivity(Intent.createChooser(shareIntent, "Отправить ключ"))
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(Icons.Filled.Share, contentDescription = "Отправить")
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.Share,
+                                            contentDescription = "Отправить",
+                                            tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                            modifier = Modifier.size(17.dp)
+                                        )
                                     }
 
-                                     Delete key
-                                    IconButton(
+                                    // Delete key
+                                    ModkeyIconButton(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                            val currentSoftId = selectedSoftId ?: return@IconButton
+                                            val currentSoftId = selectedSoftId ?: return@ModkeyIconButton
                                             scope.launch {
                                                 try {
                                                     apiClient.deleteKey(account.apiKey, currentSoftId, keyItem.key)
@@ -460,9 +537,16 @@ fun KeysScreen(
                                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                                 }
                                             }
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(Icons.Filled.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.error)
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = "Удалить",
+                                            tint = ModkeyDesign.Colors.error,
+                                            modifier = Modifier.size(17.dp)
+                                        )
                                     }
                                 }
                             }
@@ -470,15 +554,29 @@ fun KeysScreen(
                     }
 
                     item {
-                        Spacer(modifier = Modifier.height(72.dp))
+                        Spacer(modifier = Modifier.height(84.dp))
                     }
                 }
             }
         }
+
+        // Floating Create Key button
+        if (selectedSoft != null && !showCreateSheet) {
+            ModkeyFab(
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    showCreateSheet = true
+                },
+                icon = Icons.Filled.Add,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 18.dp, bottom = 96.dp)
+            )
+        }
     }
 
-     Create Key Sheet
-    val selectedSoft = softwareList.find { it.id == selectedSoftId }
+    // Create Key Sheet
     if (showCreateSheet && selectedSoft != null) {
         QuickCreateKeyBottomSheet(
             apiKey = account.apiKey,
@@ -488,81 +586,64 @@ fun KeysScreen(
         )
     }
 
-     Edit & Rename Key Dialog
+    // Edit & Rename Key Dialog
     if (editingKeyItem != null && selectedSoftId != null) {
         val target = editingKeyItem!!
         var newKeyName by remember(target) { mutableStateOf(target.key) }
         var newMaxDevices by remember(target) { mutableStateOf(target.maxDevices.toString()) }
         var newHwidLimit by remember(target) { mutableStateOf(target.hwidResetLimit.toString()) }
 
-        AlertDialog(
-            onDismissRequest = { editingKeyItem = null },
-            title = { Text("Редактировать ключ") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = newKeyName,
-                        onValueChange = { newKeyName = it },
-                        label = { Text("Строка ключа (Переименование)") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    OutlinedTextField(
-                        value = newMaxDevices,
-                        onValueChange = { newMaxDevices = it },
-                        label = { Text("Макс. устройств (HWID слотов)") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    OutlinedTextField(
-                        value = newHwidLimit,
-                        onValueChange = { newHwidLimit = it },
-                        label = { Text("Лимит сбросов HWID (-1 = безлимит)") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                val currentKey = target.key
-                                val trimmedNewKey = newKeyName.trim()
-                                var effectiveKey = currentKey
-                                if (trimmedNewKey.isNotBlank() && trimmedNewKey != currentKey) {
-                                    apiClient.renameUserKey(account.apiKey, currentKey, trimmedNewKey)
-                                    effectiveKey = trimmedNewKey
-                                }
-                                apiClient.editKey(
-                                    apiKey = account.apiKey,
-                                    softId = selectedSoftId!!,
-                                    key = effectiveKey,
-                                    maxDevices = newMaxDevices.toIntOrNull() ?: target.maxDevices,
-                                    hwidResetLimit = newHwidLimit.toIntOrNull() ?: target.hwidResetLimit
-                                )
-                                editingKeyItem = null
-                                Toast.makeText(context, "Ключ обновлён!", Toast.LENGTH_SHORT).show()
-                                loadKeys()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, e.message ?: "Ошибка сохранения", Toast.LENGTH_SHORT).show()
-                            }
+        ModkeyDialog(
+            title = "Редактировать ключ",
+            onDismiss = { editingKeyItem = null },
+            confirmLabel = "Сохранить",
+            onConfirm = {
+                scope.launch {
+                    try {
+                        val currentKey = target.key
+                        val trimmedNewKey = newKeyName.trim()
+                        var effectiveKey = currentKey
+                        if (trimmedNewKey.isNotBlank() && trimmedNewKey != currentKey) {
+                            apiClient.renameUserKey(account.apiKey, currentKey, trimmedNewKey)
+                            effectiveKey = trimmedNewKey
                         }
+                        apiClient.editKey(
+                            apiKey = account.apiKey,
+                            softId = selectedSoftId!!,
+                            key = effectiveKey,
+                            maxDevices = newMaxDevices.toIntOrNull() ?: target.maxDevices,
+                            hwidResetLimit = newHwidLimit.toIntOrNull() ?: target.hwidResetLimit
+                        )
+                        editingKeyItem = null
+                        Toast.makeText(context, "Ключ обновлён!", Toast.LENGTH_SHORT).show()
+                        loadKeys()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message ?: "Ошибка сохранения", Toast.LENGTH_SHORT).show()
                     }
-                ) {
-                    Text("Сохранить")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingKeyItem = null }) {
-                    Text("Отмена")
                 }
             }
-        )
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ModkeyOutlinedTextField(
+                    value = newKeyName,
+                    onValueChange = { newKeyName = it },
+                    label = "Строка ключа (Переименование)"
+                )
+                ModkeyOutlinedTextField(
+                    value = newMaxDevices,
+                    onValueChange = { newMaxDevices = it },
+                    label = "Макс. устройств (HWID слотов)"
+                )
+                ModkeyOutlinedTextField(
+                    value = newHwidLimit,
+                    onValueChange = { newHwidLimit = it },
+                    label = "Лимит сбросов HWID (-1 = безлимит)"
+                )
+            }
+        }
     }
 
-     Bulk Cleanup Dialog (delete-keys)
+    // Bulk Cleanup Dialog (delete-keys)
     if (showBulkCleanupDialog && selectedSoftId != null) {
         val cleanupKinds = listOf(
             "expired" to "Истекшие ключи (Expired)",
@@ -572,114 +653,105 @@ fun KeysScreen(
         )
         var selectedKind by remember { mutableStateOf("expired") }
 
-        AlertDialog(
-            onDismissRequest = { showBulkCleanupDialog = false },
-            title = { Text("Массовая очистка ключей") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Выберите категорию ключей для безвозвратного удаления из базы:",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    cleanupKinds.forEach { (kindCode, kindLabel) ->
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (selectedKind == kindCode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                            onClick = { selectedKind = kindCode },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = kindLabel,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (selectedKind == kindCode) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (selectedKind == kindCode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
+        ModkeyDialog(
+            title = "Массовая очистка ключей",
+            onDismiss = { showBulkCleanupDialog = false },
+            confirmLabel = "Удалить выбранные",
+            confirmContainerColor = ModkeyDesign.Colors.error,
+            confirmContentColor = ModkeyDesign.Colors.onError,
+            onConfirm = {
+                scope.launch {
+                    try {
+                        val deletedCount = apiClient.deleteKeysBulk(account.apiKey, selectedSoftId!!, selectedKind)
+                        showBulkCleanupDialog = false
+                        Toast.makeText(context, "Удалено ключей: $deletedCount", Toast.LENGTH_LONG).show()
+                        loadKeys()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message ?: "Ошибка очистки", Toast.LENGTH_SHORT).show()
                     }
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                val deletedCount = apiClient.deleteKeysBulk(account.apiKey, selectedSoftId!!, selectedKind)
-                                showBulkCleanupDialog = false
-                                Toast.makeText(context, "Удалено ключей: $deletedCount", Toast.LENGTH_LONG).show()
-                                loadKeys()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, e.message ?: "Ошибка очистки", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Удалить выбранные")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBulkCleanupDialog = false }) {
-                    Text("Отмена")
-                }
             }
-        )
-    }
-
-     Export Keys Dialog (export-keys)
-    if (showExportDialog && selectedSoftId != null) {
-        var selectedFormat by remember { mutableStateOf("txt") }
-        AlertDialog(
-            onDismissRequest = { showExportDialog = false },
-            title = { Text("Экспорт базы ключей") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Выгрузите до 10 000 ключей в удобном формате для отправки или бэкапа:",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("txt", "csv", "json").forEach { fmt ->
-                            FilterChip(
-                                selected = selectedFormat == fmt,
-                                onClick = { selectedFormat = fmt },
-                                label = { Text(fmt.uppercase()) }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Выберите категорию ключей для безвозвратного удаления из базы:",
+                    style = ModkeyDesign.Typography.bodySmall(),
+                    color = ModkeyDesign.Colors.onSurfaceVariant
+                )
+                cleanupKinds.forEach { (kindCode, kindLabel) ->
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (selectedKind == kindCode) ModkeyDesign.Colors.primaryContainer
+                        else ModkeyDesign.Colors.surfaceContainerHigh,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (selectedKind == kindCode) ModkeyDesign.Colors.primary.copy(alpha = 0.5f)
+                            else ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.3f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .modkeyPress { selectedKind = kindCode }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = kindLabel,
+                                style = ModkeyDesign.Typography.bodyMedium().copy(
+                                    fontWeight = if (selectedKind == kindCode) FontWeight.Bold else FontWeight.Normal
+                                ),
+                                color = if (selectedKind == kindCode) ModkeyDesign.Colors.primary
+                                else ModkeyDesign.Colors.onSurface
                             )
                         }
                     }
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                val exportedText = apiClient.exportKeys(account.apiKey, selectedSoftId!!, selectedFormat)
-                                showExportDialog = false
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_SUBJECT, "modkey_export.$selectedFormat")
-                                    putExtra(Intent.EXTRA_TEXT, exportedText)
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Экспорт ключей (${selectedFormat.uppercase()})"))
-                            } catch (e: Exception) {
-                                Toast.makeText(context, e.message ?: "Ошибка экспорта", Toast.LENGTH_SHORT).show()
-                            }
+            }
+        }
+    }
+
+    // Export Keys Dialog (export-keys)
+    if (showExportDialog && selectedSoftId != null) {
+        var selectedFormat by remember { mutableStateOf("txt") }
+
+        ModkeyDialog(
+            title = "Экспорт базы ключей",
+            onDismiss = { showExportDialog = false },
+            confirmLabel = "Экспортировать",
+            onConfirm = {
+                scope.launch {
+                    try {
+                        val exportedText = apiClient.exportKeys(account.apiKey, selectedSoftId!!, selectedFormat)
+                        showExportDialog = false
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "modkey_export.$selectedFormat")
+                            putExtra(Intent.EXTRA_TEXT, exportedText)
                         }
+                        context.startActivity(Intent.createChooser(shareIntent, "Экспорт ключей (${selectedFormat.uppercase()})"))
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message ?: "Ошибка экспорта", Toast.LENGTH_SHORT).show()
                     }
-                ) {
-                    Text("Экспортировать")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExportDialog = false }) {
-                    Text("Отмена")
                 }
             }
-        )
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Выгрузите до 10 000 ключей в удобном формате для отправки или бэкапа:",
+                    style = ModkeyDesign.Typography.bodySmall(),
+                    color = ModkeyDesign.Colors.onSurfaceVariant
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("txt", "csv", "json").forEach { fmt ->
+                        ModkeyFilterChip(
+                            selected = selectedFormat == fmt,
+                            onClick = { selectedFormat = fmt },
+                            label = fmt.uppercase()
+                        )
+                    }
+                }
+            }
+        }
     }
 }

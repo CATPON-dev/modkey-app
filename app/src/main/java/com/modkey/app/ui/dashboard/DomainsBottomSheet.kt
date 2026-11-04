@@ -6,6 +6,7 @@ import android.content.Context
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,25 +23,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,7 +38,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
@@ -60,11 +47,21 @@ import com.modkey.app.ModkeyApp
 import com.modkey.app.core.model.DomainItem
 import com.modkey.app.core.model.SoftwareItem
 import com.modkey.app.core.network.ModkeyDnsVerificationException
+import com.modkey.app.ui.components.CircularLoader
+import com.modkey.app.ui.components.ModkeyBottomSheet
+import com.modkey.app.ui.components.ModkeyButton
+import com.modkey.app.ui.components.ModkeyFilterChip
+import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.components.ModkeyIconButton
+import com.modkey.app.ui.components.ModkeyOutlinedTextField
+import com.modkey.app.ui.components.SheetHeader
 import com.modkey.app.ui.components.StatusBadge
+import com.modkey.app.ui.components.Surface
+import com.modkey.app.ui.components.Text
+import com.modkey.app.ui.theme.ModkeyDesign
 import com.modkey.app.ui.theme.connectedItemShape
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DomainsBottomSheet(
     apiKey: String,
@@ -76,7 +73,6 @@ fun DomainsBottomSheet(
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val apiClient = ModkeyApp.instance.apiClient
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var selectedEndpoint by remember { mutableStateOf("main") } // "main" or "test"
     var domains by remember { mutableStateOf<List<DomainItem>>(emptyList()) }
@@ -105,81 +101,56 @@ fun DomainsBottomSheet(
         loadDomains()
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
+    ModkeyBottomSheet(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 28.dp),
+                .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(40.dp)
+            SheetHeader(
+                title = "Зеркала и SSL Домены",
+                subtitle = "Софт: ${software.name} • Лимит: до 5 доменов",
+                onClose = onDismiss,
+                leading = {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(ModkeyDesign.Colors.primaryContainer, CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Filled.Language,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Зеркала и SSL Домены",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Софт: ${software.name} • Лимит: до 5 доменов",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        ModkeyIcon(
+                            imageVector = Icons.Filled.Language,
+                            contentDescription = null,
+                            tint = ModkeyDesign.Colors.primary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Filled.Close, contentDescription = "Закрыть")
-                }
-            }
+            )
 
             // Endpoint Switcher
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
+                ModkeyFilterChip(
                     selected = selectedEndpoint == "main",
                     onClick = { selectedEndpoint = "main" },
-                    label = { Text("Main Connect") },
-                    shape = RoundedCornerShape(12.dp)
+                    label = "Main Connect"
                 )
-                FilterChip(
+                ModkeyFilterChip(
                     selected = selectedEndpoint == "test",
                     onClick = { selectedEndpoint = "test" },
-                    label = { Text("Test Connect") },
-                    shape = RoundedCornerShape(12.dp)
+                    label = "Test Connect"
                 )
             }
 
             // Add New Domain Card
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
+                color = ModkeyDesign.Colors.surfaceContainer,
+                border = BorderStroke(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.3f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -188,28 +159,25 @@ fun DomainsBottomSheet(
                 ) {
                     Text(
                         text = "Привязать новый домен (Let's Encrypt SSL)",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
+                        style = ModkeyDesign.Typography.labelLarge().copy(fontWeight = FontWeight.Bold)
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
+                        ModkeyOutlinedTextField(
                             value = newDomainInput,
                             onValueChange = {
                                 newDomainInput = it
                                 errorMessage = null
                             },
-                            placeholder = { Text("keys.yourdomain.com") },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
+                            placeholder = "keys.yourdomain.com",
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Button(
+                        ModkeyButton(
                             onClick = {
-                                if (newDomainInput.isBlank()) return@Button
+                                if (newDomainInput.isBlank()) return@ModkeyButton
                                 isAdding = true
                                 errorMessage = null
                                 dnsTxtRecordName = null
@@ -239,18 +207,26 @@ fun DomainsBottomSheet(
                             },
                             enabled = !isAdding && newDomainInput.isNotBlank(),
                             shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier.height(52.dp)
+                            minHeight = 48.dp
                         ) {
                             if (isAdding) {
-                                CircularProgressIndicator(
+                                CircularLoader(
                                     modifier = Modifier.size(18.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    strokeWidth = 2.dp
+                                    color = ModkeyDesign.Colors.onPrimary
                                 )
                             } else {
-                                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                ModkeyIcon(
+                                    imageVector = Icons.Filled.Add,
+                                    contentDescription = null,
+                                    tint = ModkeyDesign.Colors.onPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Добавить")
+                                Text(
+                                    text = "Добавить",
+                                    style = ModkeyDesign.Typography.labelLarge(),
+                                    color = ModkeyDesign.Colors.onPrimary
+                                )
                             }
                         }
                     }
@@ -258,8 +234,8 @@ fun DomainsBottomSheet(
                     if (errorMessage != null) {
                         Text(
                             text = errorMessage.orEmpty(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
+                            style = ModkeyDesign.Typography.bodySmall(),
+                            color = ModkeyDesign.Colors.error
                         )
                     }
 
@@ -267,8 +243,8 @@ fun DomainsBottomSheet(
                     if (!dnsTxtRecordName.isNullOrBlank() && !dnsTxtRecordValue.isNullOrBlank()) {
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                            color = ModkeyDesign.Colors.surfaceContainerHighest,
+                            border = BorderStroke(1.dp, ModkeyDesign.Colors.primary),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -277,8 +253,7 @@ fun DomainsBottomSheet(
                             ) {
                                 Text(
                                     text = "1. Направьте A-запись домена на IP панели mod.wtf\n2. Добавьте TXT-запись в DNS вашего домена:",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold
+                                    style = ModkeyDesign.Typography.bodySmall().copy(fontWeight = FontWeight.SemiBold)
                                 )
 
                                 Row(
@@ -287,20 +262,32 @@ fun DomainsBottomSheet(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Имя (Host / Name):", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            text = "Имя (Host / Name):",
+                                            style = ModkeyDesign.Typography.labelSmall(),
+                                            color = ModkeyDesign.Colors.onSurfaceVariant
+                                        )
                                         Text(
                                             text = dnsTxtRecordName.orEmpty(),
-                                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                                            style = ModkeyDesign.Typography.bodySmall().copy(fontWeight = FontWeight.Bold),
+                                            fontFamily = FontFamily.Monospace
                                         )
                                     }
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                             cb.setPrimaryClip(ClipData.newPlainText("TXT Name", dnsTxtRecordName))
                                             Toast.makeText(context, "Имя TXT скопировано", Toast.LENGTH_SHORT).show()
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.ContentCopy,
+                                            contentDescription = null,
+                                            tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                            modifier = Modifier.size(17.dp)
+                                        )
                                     }
                                 }
 
@@ -310,21 +297,33 @@ fun DomainsBottomSheet(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Значение (TXT Value):", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            text = "Значение (TXT Value):",
+                                            style = ModkeyDesign.Typography.labelSmall(),
+                                            color = ModkeyDesign.Colors.onSurfaceVariant
+                                        )
                                         Text(
                                             text = dnsTxtRecordValue.orEmpty(),
-                                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.primary
+                                            style = ModkeyDesign.Typography.bodySmall().copy(fontWeight = FontWeight.Bold),
+                                            fontFamily = FontFamily.Monospace,
+                                            color = ModkeyDesign.Colors.primary
                                         )
                                     }
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                             cb.setPrimaryClip(ClipData.newPlainText("TXT Value", dnsTxtRecordValue))
                                             Toast.makeText(context, "Значение TXT скопировано", Toast.LENGTH_SHORT).show()
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.ContentCopy,
+                                            contentDescription = null,
+                                            tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                            modifier = Modifier.size(17.dp)
+                                        )
                                     }
                                 }
                             }
@@ -336,26 +335,31 @@ fun DomainsBottomSheet(
             // Existing Domains List
             Text(
                 text = "Подключённые домены (${domains.size}/5)",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
+                style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold)
             )
 
             if (isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularLoader(modifier = Modifier.size(28.dp))
                 }
             } else if (domains.isEmpty()) {
                 Text(
                     text = "Для этого эндпоинта пока нет привязанных зеркал.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = ModkeyDesign.Typography.bodySmall(),
+                    color = ModkeyDesign.Colors.onSurfaceVariant
                 )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     domains.forEachIndexed { idx, dom ->
                         Surface(
                             shape = connectedItemShape(idx, domains.size),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            color = ModkeyDesign.Colors.surfaceContainerHigh,
+                            border = BorderStroke(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.25f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
@@ -364,23 +368,26 @@ fun DomainsBottomSheet(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                        Icon(
-                                            Icons.Filled.Lock,
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.Lock,
                                             contentDescription = null,
-                                            tint = if (dom.active) Color(0xFF4CAF50) else Color(0xFFFFB300),
+                                            tint = if (dom.active) ModkeyDesign.Colors.success else ModkeyDesign.Colors.warning,
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = dom.domain,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold
+                                            style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold),
+                                            maxLines = 1
                                         )
                                     }
                                     StatusBadge(
                                         text = if (dom.active) "Активен" else "Пауза",
-                                        color = if (dom.active) Color(0xFF4CAF50) else Color(0xFFFFB300)
+                                        color = if (dom.active) ModkeyDesign.Colors.success else ModkeyDesign.Colors.warning
                                     )
                                 }
 
@@ -388,25 +395,33 @@ fun DomainsBottomSheet(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = pubUrl,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = ModkeyDesign.Typography.bodySmall(),
+                                    fontFamily = FontFamily.Monospace,
+                                    color = ModkeyDesign.Colors.onSurfaceVariant
                                 )
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.End
                                 ) {
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                             cb.setPrimaryClip(ClipData.newPlainText("Connect URL", pubUrl))
                                             Toast.makeText(context, "URL скопирован", Toast.LENGTH_SHORT).show()
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(Icons.Filled.ContentCopy, contentDescription = "Копировать URL", modifier = Modifier.size(18.dp))
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.ContentCopy,
+                                            contentDescription = "Копировать URL",
+                                            tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                            modifier = Modifier.size(17.dp)
+                                        )
                                     }
 
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                             scope.launch {
@@ -417,16 +432,19 @@ fun DomainsBottomSheet(
                                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                                 }
                                             }
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(
-                                            if (dom.active) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                        ModkeyIcon(
+                                            imageVector = if (dom.active) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                             contentDescription = "Пауза/Пуск",
-                                            tint = if (dom.active) Color(0xFFFFB300) else Color(0xFF4CAF50)
+                                            tint = if (dom.active) ModkeyDesign.Colors.warning else ModkeyDesign.Colors.success,
+                                            modifier = Modifier.size(17.dp)
                                         )
                                     }
 
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                             scope.launch {
@@ -439,9 +457,16 @@ fun DomainsBottomSheet(
                                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                                 }
                                             }
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(Icons.Filled.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.error)
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = "Удалить",
+                                            tint = ModkeyDesign.Colors.error,
+                                            modifier = Modifier.size(17.dp)
+                                        )
                                     }
                                 }
                             }

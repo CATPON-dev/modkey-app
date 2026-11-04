@@ -23,13 +23,6 @@ import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VpnKey
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -47,8 +40,15 @@ import com.modkey.app.ui.dashboard.DashboardScreen
 import com.modkey.app.ui.keys.KeysScreen
 import com.modkey.app.ui.settings.SettingsScreen
 import com.modkey.app.ui.theme.ModkeyTheme
+import com.modkey.app.ui.theme.ThemeMode
 import com.modkey.app.ui.theme.isDarkTheme
 import com.modkey.app.ui.users.UsersScreen
+import com.modkey.app.ui.components.ModkeyButton
+import com.modkey.app.ui.components.ModkeyIconButton
+import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.theme.ModkeyDesign
+import com.modkey.app.ui.components.WelcomeAuthorDialog
+import com.modkey.app.ui.components.BottomScaffold
 
 class MainActivity : ComponentActivity() {
 
@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
             val view = LocalView.current
 
             if (!view.isInEditMode) {
-                SideEffect {
+                androidx.compose.runtime.SideEffect {
                     val window = (view.context as ComponentActivity).window
                     WindowCompat.getInsetsController(window, view).apply {
                         isAppearanceLightStatusBars = !dark
@@ -83,7 +83,7 @@ class MainActivity : ComponentActivity() {
                 var showAccountSheet by remember { mutableStateOf(false) }
 
                 if (showWelcomeDialog) {
-                    com.modkey.app.ui.components.WelcomeAuthorDialog(
+                    WelcomeAuthorDialog(
                         onDismiss = { viewModel.dismissFirstLaunchAuthorCard() }
                     )
                 }
@@ -99,78 +99,13 @@ class MainActivity : ComponentActivity() {
                 } else {
                     val account = activeAccount!!
 
-                    Scaffold(
-                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                        bottomBar = {
-                            NavigationBar(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer
-                            ) {
-                                NavigationBarItem(
-                                    selected = currentDestination == MainDestination.DASHBOARD,
-                                    onClick = { viewModel.selectDestination(MainDestination.DASHBOARD) },
-                                    icon = { Icon(Icons.Filled.Dashboard, contentDescription = "Дашборд") },
-                                    label = { Text("Дашборд") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                                    )
-                                )
-
-                                NavigationBarItem(
-                                    selected = currentDestination == MainDestination.KEYS,
-                                    onClick = { viewModel.selectDestination(MainDestination.KEYS) },
-                                    icon = { Icon(Icons.Filled.VpnKey, contentDescription = "Ключи") },
-                                    label = { Text("Ключи") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                                    )
-                                )
-
-                                NavigationBarItem(
-                                    selected = currentDestination == MainDestination.USERS,
-                                    onClick = { viewModel.selectDestination(MainDestination.USERS) },
-                                    icon = { Icon(Icons.Filled.People, contentDescription = "Реселлеры") },
-                                    label = { Text("Реселлеры") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                                    )
-                                )
-
-                                NavigationBarItem(
-                                    selected = currentDestination == MainDestination.CONNECT,
-                                    onClick = { viewModel.selectDestination(MainDestination.CONNECT) },
-                                    icon = { Icon(Icons.Filled.BugReport, contentDescription = "Connect") },
-                                    label = { Text("Connect") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                                    )
-                                )
-
-                                NavigationBarItem(
-                                    selected = currentDestination == MainDestination.SETTINGS,
-                                    onClick = { viewModel.selectDestination(MainDestination.SETTINGS) },
-                                    icon = { Icon(Icons.Filled.Settings, contentDescription = "Настройки") },
-                                    label = { Text("Настройки") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                                    )
-                                )
-                            }
-                        }
-                    ) { innerPadding ->
+                    BottomScaffold(
+                        currentDestination = currentDestination,
+                        onDestinationClick = { dest -> viewModel.selectDestination(dest) },
+                        modifier = Modifier.fillMaxSize()
+                    ) { _ ->
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(bottom = innerPadding.calculateBottomPadding())
+                            modifier = Modifier.fillMaxSize()
                         ) {
                             AnimatedContent(
                                 targetState = currentDestination,

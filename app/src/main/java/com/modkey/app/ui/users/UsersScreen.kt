@@ -2,6 +2,7 @@ package com.modkey.app.ui.users
 
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,14 +12,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -26,24 +30,10 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,7 +44,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -64,9 +54,19 @@ import com.modkey.app.core.model.SavedAccount
 import com.modkey.app.core.model.UserItem
 import com.modkey.app.ui.components.EmptyState
 import com.modkey.app.ui.components.LoadingBlock
+import com.modkey.app.ui.components.ModkeyFab
+import com.modkey.app.ui.components.ModkeyFilterChip
+import com.modkey.app.ui.components.ModkeyDialog
+import com.modkey.app.ui.components.ModkeyIconButton
+import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.components.ModkeyOutlinedTextField
 import com.modkey.app.ui.components.SectionHeader
 import com.modkey.app.ui.components.StatusBadge
+import com.modkey.app.ui.components.Surface
+import com.modkey.app.ui.components.Text
+import com.modkey.app.ui.theme.ModkeyDesign
 import com.modkey.app.ui.theme.connectedItemShape
+import com.modkey.app.ui.theme.modkeyPress
 import kotlinx.coroutines.launch
 
 private enum class UserFilter(val label: String) {
@@ -76,7 +76,6 @@ private enum class UserFilter(val label: String) {
     BLOCKED("Заблокированные")
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UsersScreen(
     account: SavedAccount
@@ -125,28 +124,18 @@ fun UsersScreen(
         loadUsers()
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    showCreateUserDialog = true
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Filled.PersonAdd, contentDescription = "Добавить реселлера")
-            }
-        }
-    ) { innerPadding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ModkeyDesign.Colors.background)
+            .statusBarsPadding()
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             SectionHeader(
                 title = "Реселлеры и клиенты (${usersList.size})",
                 subtitle = "Управление балансом, ролями, блокировкой и сессиями",
@@ -155,24 +144,39 @@ fun UsersScreen(
             )
 
             // Search Bar
-            OutlinedTextField(
+            ModkeyOutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Поиск по логину реселлера...") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                placeholder = "Поиск по логину реселлера...",
+                leadingIcon = {
+                    ModkeyIcon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = null,
+                        tint = ModkeyDesign.Colors.onSurfaceVariant,
+                        modifier = Modifier.size(19.dp)
+                    )
+                },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Filled.Clear, contentDescription = "Очистить")
+                        ModkeyIconButton(
+                            onClick = { searchQuery = "" },
+                            size = 26.dp,
+                            iconSize = 15.dp
+                        ) {
+                            ModkeyIcon(
+                                imageVector = Icons.Filled.Clear,
+                                contentDescription = "Очистить",
+                                tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                modifier = Modifier.size(15.dp)
+                            )
                         }
                     }
                 },
-                singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Filter Chips
             Row(
@@ -182,19 +186,18 @@ fun UsersScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 UserFilter.entries.forEach { filter ->
-                    FilterChip(
+                    ModkeyFilterChip(
                         selected = selectedFilter == filter,
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             selectedFilter = filter
                         },
-                        label = { Text(filter.label) },
-                        shape = RoundedCornerShape(12.dp)
+                        label = filter.label
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             if (isLoading) {
                 LoadingBlock(message = "Загрузка клиентских аккаунтов...")
@@ -211,9 +214,14 @@ fun UsersScreen(
                 ) {
                     itemsIndexed(usersList) { index, user ->
                         val isActive = user.status == 1
+
                         Surface(
                             shape = connectedItemShape(index, usersList.size),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            color = ModkeyDesign.Colors.surfaceContainerHigh,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.25f)
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
@@ -221,54 +229,57 @@ fun UsersScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = if (isActive) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
-                                        modifier = Modifier.size(42.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(42.dp)
+                                            .clipCircleShape()
+                                            .background(
+                                                if (isActive) ModkeyDesign.Colors.primaryContainer
+                                                else ModkeyDesign.Colors.errorContainer,
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                imageVector = Icons.Filled.Person,
-                                                contentDescription = null,
-                                                tint = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(22.dp)
-                                            )
-                                        }
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.Person,
+                                            contentDescription = null,
+                                            tint = if (isActive) ModkeyDesign.Colors.primary else ModkeyDesign.Colors.error,
+                                            modifier = Modifier.size(21.dp)
+                                        )
                                     }
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
                                                 text = user.username,
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold
+                                                style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold)
                                             )
                                             if (!user.fullname.isNullOrBlank()) {
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
                                                     text = "(${user.fullname})",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    style = ModkeyDesign.Typography.bodySmall(),
+                                                    color = ModkeyDesign.Colors.onSurfaceVariant,
+                                                    maxLines = 1
                                                 )
                                             }
                                         }
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Spacer(modifier = Modifier.height(5.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             StatusBadge(
                                                 text = if (user.level == 3) "Реселлер" else "Админ",
-                                                color = if (user.level == 3) Color(0xFFAB47BC) else Color(0xFF03A9F4)
+                                                color = if (user.level == 3) ModkeyDesign.Colors.warning else ModkeyDesign.Colors.primary
                                             )
                                             Spacer(modifier = Modifier.width(6.dp))
                                             StatusBadge(
                                                 text = if (isActive) "Активен" else "Заблокирован",
-                                                color = if (isActive) Color(0xFF4CAF50) else Color(0xFFE53935)
+                                                color = if (isActive) ModkeyDesign.Colors.success else ModkeyDesign.Colors.error
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
                                                 text = "Баланс: ${user.saldo} ₽",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = MaterialTheme.colorScheme.primary
+                                                style = ModkeyDesign.Typography.bodySmall().copy(fontWeight = FontWeight.ExtraBold),
+                                                color = ModkeyDesign.Colors.primary
                                             )
                                         }
                                     }
@@ -284,8 +295,8 @@ fun UsersScreen(
                                                 append("TG: @${user.telegram.removePrefix("@")}")
                                             }
                                         },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        style = ModkeyDesign.Typography.labelSmall(),
+                                        color = ModkeyDesign.Colors.onSurfaceVariant
                                     )
                                 }
 
@@ -298,16 +309,21 @@ fun UsersScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // Edit Balance & Info
-                                    IconButton(onClick = { editingUser = user }) {
-                                        Icon(
-                                            Icons.Filled.AccountBalanceWallet,
+                                    ModkeyIconButton(
+                                        onClick = { editingUser = user },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
+                                    ) {
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.AccountBalanceWallet,
                                             contentDescription = "Баланс и настройки",
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = ModkeyDesign.Colors.primary,
+                                            modifier = Modifier.size(17.dp)
                                         )
                                     }
 
                                     // Block / Unblock
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                             scope.launch {
@@ -324,17 +340,20 @@ fun UsersScreen(
                                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                                 }
                                             }
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(
-                                            if (isActive) Icons.Filled.Block else Icons.Filled.CheckCircle,
+                                        ModkeyIcon(
+                                            imageVector = if (isActive) Icons.Filled.Block else Icons.Filled.CheckCircle,
                                             contentDescription = "Блок/Разблок",
-                                            tint = if (isActive) Color(0xFFFFB300) else Color(0xFF4CAF50)
+                                            tint = if (isActive) ModkeyDesign.Colors.warning else ModkeyDesign.Colors.success,
+                                            modifier = Modifier.size(17.dp)
                                         )
                                     }
 
                                     // Kick sessions button
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                             scope.launch {
@@ -345,17 +364,20 @@ fun UsersScreen(
                                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                                 }
                                             }
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ExitToApp,
+                                        ModkeyIcon(
+                                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                                             contentDescription = "Сброс сессий",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                            modifier = Modifier.size(17.dp)
                                         )
                                     }
 
                                     // Delete User
-                                    IconButton(
+                                    ModkeyIconButton(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                             scope.launch {
@@ -367,12 +389,15 @@ fun UsersScreen(
                                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                                 }
                                             }
-                                        }
+                                        },
+                                        size = 34.dp,
+                                        iconSize = 17.dp
                                     ) {
-                                        Icon(
-                                            Icons.Filled.Delete,
+                                        ModkeyIcon(
+                                            imageVector = Icons.Filled.Delete,
                                             contentDescription = "Удалить",
-                                            tint = MaterialTheme.colorScheme.error
+                                            tint = ModkeyDesign.Colors.error,
+                                            modifier = Modifier.size(17.dp)
                                         )
                                     }
                                 }
@@ -381,10 +406,25 @@ fun UsersScreen(
                     }
 
                     item {
-                        Spacer(modifier = Modifier.height(72.dp))
+                        Spacer(modifier = Modifier.height(84.dp))
                     }
                 }
             }
+        }
+
+        // Floating Create User button
+        if (!showCreateUserDialog) {
+            ModkeyFab(
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    showCreateUserDialog = true
+                },
+                icon = Icons.Filled.PersonAdd,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 18.dp, bottom = 96.dp)
+            )
         }
     }
 
@@ -397,97 +437,82 @@ fun UsersScreen(
         var expDaysInput by remember { mutableStateOf("30") }
         var fullnameInput by remember { mutableStateOf("") }
 
-        AlertDialog(
-            onDismissRequest = { showCreateUserDialog = false },
-            title = { Text("Создать аккаунт реселлера") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = roleLevel == 3,
-                            onClick = { roleLevel = 3 },
-                            label = { Text("Реселлер") }
+        ModkeyDialog(
+            title = "Создать аккаунт реселлера",
+            onDismiss = { showCreateUserDialog = false },
+            confirmLabel = "Создать",
+            onConfirm = {
+                scope.launch {
+                    try {
+                        apiClient.createUser(
+                            apiKey = account.apiKey,
+                            username = username.trim(),
+                            password = password,
+                            level = roleLevel,
+                            saldo = saldoInput.toIntOrNull() ?: 0,
+                            expirationDays = expDaysInput.toIntOrNull() ?: 30,
+                            fullname = fullnameInput.trim()
                         )
-                        FilterChip(
-                            selected = roleLevel == 2,
-                            onClick = { roleLevel = 2 },
-                            label = { Text("Админ") }
-                        )
+                        showCreateUserDialog = false
+                        Toast.makeText(context, "Реселлер $username создан!", Toast.LENGTH_SHORT).show()
+                        loadUsers()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message ?: "Ошибка создания аккаунта", Toast.LENGTH_SHORT).show()
                     }
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text("Логин (4-25 лат. символов)") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Пароль (от 8 символов)") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = saldoInput,
-                            onValueChange = { saldoInput = it },
-                            label = { Text("Баланс (₽)") },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = expDaysInput,
-                            onValueChange = { expDaysInput = it },
-                            label = { Text("Срок (дней)") },
-                            singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    OutlinedTextField(
-                        value = fullnameInput,
-                        onValueChange = { fullnameInput = it },
-                        label = { Text("Имя / Заметка (опционально)") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                apiClient.createUser(
-                                    apiKey = account.apiKey,
-                                    username = username.trim(),
-                                    password = password,
-                                    level = roleLevel,
-                                    saldo = saldoInput.toIntOrNull() ?: 0,
-                                    expirationDays = expDaysInput.toIntOrNull() ?: 30,
-                                    fullname = fullnameInput.trim()
-                                )
-                                showCreateUserDialog = false
-                                Toast.makeText(context, "Реселлер $username создан!", Toast.LENGTH_SHORT).show()
-                                loadUsers()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, e.message ?: "Ошибка создания аккаунта", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    },
-                    enabled = username.length >= 4 && password.length >= 8
-                ) {
-                    Text("Создать")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCreateUserDialog = false }) {
-                    Text("Отмена")
                 }
             }
-        )
+        ) {
+            val scrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(330.dp)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ModkeyFilterChip(
+                        selected = roleLevel == 3,
+                        onClick = { roleLevel = 3 },
+                        label = "Реселлер"
+                    )
+                    ModkeyFilterChip(
+                        selected = roleLevel == 2,
+                        onClick = { roleLevel = 2 },
+                        label = "Админ"
+                    )
+                }
+                ModkeyOutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = "Логин (4-25 лат. символов)"
+                )
+                ModkeyOutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = "Пароль (от 8 символов)"
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ModkeyOutlinedTextField(
+                        value = saldoInput,
+                        onValueChange = { saldoInput = it },
+                        label = "Баланс (₽)",
+                        modifier = Modifier.weight(1f)
+                    )
+                    ModkeyOutlinedTextField(
+                        value = expDaysInput,
+                        onValueChange = { expDaysInput = it },
+                        label = "Срок (дней)",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                ModkeyOutlinedTextField(
+                    value = fullnameInput,
+                    onValueChange = { fullnameInput = it },
+                    label = "Имя / Заметка (опционально)"
+                )
+            }
+        }
     }
 
     // Edit User Dialog (edit-user)
@@ -498,93 +523,85 @@ fun UsersScreen(
         var fullnameInput by remember(target) { mutableStateOf(target.fullname.orEmpty()) }
         var telegramInput by remember(target) { mutableStateOf(target.telegram.orEmpty()) }
 
-        AlertDialog(
-            onDismissRequest = { editingUser = null },
-            title = { Text("Управление: ${target.username}") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = roleLevel == 3,
-                            onClick = { roleLevel = 3 },
-                            label = { Text("Реселлер") }
+        ModkeyDialog(
+            title = "Управление: ${target.username}",
+            onDismiss = { editingUser = null },
+            confirmLabel = "Сохранить",
+            onConfirm = {
+                scope.launch {
+                    try {
+                        apiClient.editUser(
+                            apiKey = account.apiKey,
+                            userId = target.id,
+                            saldo = saldoInput.toIntOrNull() ?: target.saldo,
+                            level = roleLevel,
+                            fullname = fullnameInput.trim(),
+                            telegram = telegramInput.trim().removePrefix("@")
                         )
-                        FilterChip(
-                            selected = roleLevel == 2,
-                            onClick = { roleLevel = 2 },
-                            label = { Text("Админ") }
-                        )
+                        editingUser = null
+                        Toast.makeText(context, "Данные ${target.username} обновлены!", Toast.LENGTH_SHORT).show()
+                        loadUsers()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message ?: "Ошибка обновления", Toast.LENGTH_SHORT).show()
                     }
-
-                    OutlinedTextField(
-                        value = saldoInput,
-                        onValueChange = { saldoInput = it },
-                        label = { Text("Баланс реселлера (₽)") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-
-                    // Quick +Balance presets
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(100, 500, 1000, 5000).forEach { bonus ->
-                            FilterChip(
-                                selected = false,
-                                onClick = {
-                                    val cur = saldoInput.toIntOrNull() ?: 0
-                                    saldoInput = (cur + bonus).toString()
-                                },
-                                label = { Text("+$bonus") }
-                            )
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = fullnameInput,
-                        onValueChange = { fullnameInput = it },
-                        label = { Text("Имя / Заметка") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = telegramInput,
-                        onValueChange = { telegramInput = it },
-                        label = { Text("Telegram (@username)") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                apiClient.editUser(
-                                    apiKey = account.apiKey,
-                                    userId = target.id,
-                                    saldo = saldoInput.toIntOrNull() ?: target.saldo,
-                                    level = roleLevel,
-                                    fullname = fullnameInput.trim(),
-                                    telegram = telegramInput.trim().removePrefix("@")
-                                )
-                                editingUser = null
-                                Toast.makeText(context, "Данные ${target.username} обновлены!", Toast.LENGTH_SHORT).show()
-                                loadUsers()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, e.message ?: "Ошибка обновления", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                ) {
-                    Text("Сохранить")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingUser = null }) {
-                    Text("Отмена")
                 }
             }
-        )
+        ) {
+            val scrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(360.dp)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ModkeyFilterChip(
+                        selected = roleLevel == 3,
+                        onClick = { roleLevel = 3 },
+                        label = "Реселлер"
+                    )
+                    ModkeyFilterChip(
+                        selected = roleLevel == 2,
+                        onClick = { roleLevel = 2 },
+                        label = "Админ"
+                    )
+                }
+
+                ModkeyOutlinedTextField(
+                    value = saldoInput,
+                    onValueChange = { saldoInput = it },
+                    label = "Баланс реселлера (₽)"
+                )
+
+                // Quick +Balance presets
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(100, 500, 1000, 5000).forEach { bonus ->
+                        ModkeyFilterChip(
+                            selected = false,
+                            onClick = {
+                                val cur = saldoInput.toIntOrNull() ?: 0
+                                saldoInput = (cur + bonus).toString()
+                            },
+                            label = "+$bonus"
+                        )
+                    }
+                }
+
+                ModkeyOutlinedTextField(
+                    value = fullnameInput,
+                    onValueChange = { fullnameInput = it },
+                    label = "Имя / Заметка"
+                )
+
+                ModkeyOutlinedTextField(
+                    value = telegramInput,
+                    onValueChange = { telegramInput = it },
+                    label = "Telegram (@username)"
+                )
+            }
+        }
     }
 }
+
+private fun Modifier.clipCircleShape(): Modifier = this.clip(CircleShape)
