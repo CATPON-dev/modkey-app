@@ -1,0 +1,142 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      commits:
+        description: "Commits for the message: a range like 8539e35..0e771ed, or one commit like 0e771ed for all its history. Empty means the built commit"
+        required: false
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      TELEGRAM_TOPIC_ID: ${{ secrets.TELEGRAM_TOPIC_ID }}
+      TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Build release APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::ANDROID_KEYSTORE_BASE64 secret is missing"; exit 1; }
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE_FILE"
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+          rm -f "$ANDROID_KEYSTORE_FILE"
+
+      - name: Verify signature
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$apksigner" verify --print-certs app/build/outputs/apk/release/*.apk | grep -i 'SHA-256'
+
+      - name: Name APK
+        id: apk
+        run: |
+          src=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
+          test -n "$src"
+          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          name="modkey-${version}-${GITHUB_SHA::7}.apk"
+          mv "$src" "$name"
+          echo "path=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.apk.outputs.path }}
+          path: ${{ steps.apk.outputs.path }}
+
+      - name: Send to Telegram
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        env:
+          APK: ${{ steps.apk.outputs.path }}
+          COMMITS: ${{ inputs.commits }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          range="${COMMITS:-}"
+          if [ -z "$range" ] && [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            range="$BEFORE..$GITHUB_SHA"
+          fi
+          if [ -n "$range" ]; then
+            git log --reverse --format=%B "$range" > "$RUNNER_TEMP/message.txt"
+            echo "COMMIT_ID=$(git rev-parse "${range##*..}")" >> "$GITHUB_ENV"
+          else
+            git log -1 --format=%B > "$RUNNER_TEMP/message.txt"
+          fi
+          python3 - <<'PY'
+          import html, json, os, re, subprocess
+
+          sha = os.environ.get("COMMIT_ID") or os.environ["GITHUB_SHA"]
+          run = f'{os.environ["GITHUB_SERVER_URL"]}/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{os.environ["GITHUB_RUN_ID"]}'
+
+          items, size = [], 0
+          for line in open(os.path.join(os.environ["RUNNER_TEMP"], "message.txt"), encoding="utf-8"):
+              line = re.sub(r"^\s*[-*•]\s*", "", line).strip()
+              if not line:
+                  continue
+              if size + len(line) > 700:
+                  items.append("…")
+                  break
+              items.append(f"• {html.escape(line)}")
+              size += len(line)
+
+          body = "\n".join(items) or "• No commit message"
+
+          def caption(icon):
+              return "\n".join([
+                  f"{icon} <strong>New CI Build!</strong>",
+                  "",
+                  f"<blockquote expandable>{body}</blockquote>",
+                  "",
+                  f"<code>{sha[:9]}</code>",
+                  f'<a href="{run}">{run}</a>',
+              ])
+
+          # Telegram strips custom emoji from bot posts in channels, so the channel gets a plain one
+          premium = '<tg-emoji emoji-id="6024106569430472546">📦</tg-emoji>'
+          targets = [("topic", os.environ["TELEGRAM_CHAT_ID"], os.environ.get("TELEGRAM_TOPIC_ID"), premium)]
+          if os.environ.get("TELEGRAM_CHANNEL_ID"):
+              targets.append(("channel", os.environ["TELEGRAM_CHANNEL_ID"], None, "📦"))
+
+          failed = []
+          for name, chat, topic, icon in targets:
+              args = ["curl", "-sS",
+                      f'https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"]}/sendDocument',
+                      "-F", f"chat_id={chat}",
+                      "-F", f'document=@{os.environ["APK"]}',
+                      "-F", "parse_mode=HTML",
+                      "-F", "caption=<-"]
+              if topic:
+                  args += ["-F", f"message_thread_id={topic}"]
+              result = subprocess.run(args, input=caption(icon), capture_output=True, text=True)
+              reply = json.loads(result.stdout or "{}")
+              if not reply.get("ok"):
+                  failed.append(name)
+                  print(f"::error::{name}: {reply.get('description', 'sendDocument failed')}")
+                  continue
+              print(f'{name}: message {reply["result"]["message_id"]}')
+          if failed:
+              raise SystemExit(1)
+          PY
