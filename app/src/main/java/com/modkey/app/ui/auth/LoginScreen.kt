@@ -60,6 +60,7 @@ import com.modkey.app.core.network.ModkeyWebAuth
 import com.modkey.app.ui.components.ModkeyButton
 import com.modkey.app.ui.components.ModkeyIconButton
 import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.components.ModkeyLogoMark
 import com.modkey.app.ui.components.ModkeyOutlinedTextField
 import com.modkey.app.ui.components.SectionHeader
 import com.modkey.app.ui.components.StatusBadge
@@ -178,43 +179,44 @@ fun LoginScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
                         modifier = Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(26.dp))
-                            .background(ModkeyDesign.Colors.primaryContainer, RoundedCornerShape(26.dp))
-                            .border(
-                                1.dp,
-                                ModkeyDesign.Colors.primary.copy(alpha = 0.35f),
-                                RoundedCornerShape(26.dp)
-                            ),
-                        contentAlignment = Alignment.Center
+                            .clip(CircleShape)
+                            .background(ModkeyDesign.Colors.surfaceContainer, CircleShape)
+                            .border(1.dp, ModkeyDesign.Colors.outline, CircleShape)
+                            .padding(horizontal = 14.dp, vertical = 7.dp)
                     ) {
-                        ModkeyIcon(
-                            imageVector = Icons.Filled.Key,
-                            contentDescription = null,
-                            tint = ModkeyDesign.Colors.primary,
-                            modifier = Modifier.size(30.dp)
+                        ModkeyLogoMark(size = 18.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "ModKey",
+                            style = ModkeyDesign.Typography.labelLarge().copy(fontWeight = FontWeight.Bold),
+                            color = ModkeyDesign.Colors.onSurface
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
-                        text = "Modkey Platform",
+                        text = "Keys, access,\nand control.",
                         style = ModkeyDesign.Typography.headlineLarge().copy(fontWeight = FontWeight.ExtraBold),
-                        color = ModkeyDesign.Colors.onSurface
+                        color = ModkeyDesign.Colors.onSurface,
+                        textAlign = TextAlign.Center
                     )
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Управление софтом, лицензиями и клиентами",
+                        text = "Лицензии, привязка устройств, роли и управление софтом",
                         style = ModkeyDesign.Typography.bodySmall(),
-                        color = ModkeyDesign.Colors.onSurfaceVariant
+                        color = ModkeyDesign.Colors.onSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
             }
 
             if (savedAccounts.isNotEmpty()) {

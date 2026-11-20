@@ -32,9 +32,12 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.People
@@ -58,22 +61,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.modkey.app.ModkeyApp
 import com.modkey.app.core.model.AccountMeInfo
+import com.modkey.app.core.model.ClientCountryStat
 import com.modkey.app.core.model.KeyItem
 import com.modkey.app.core.model.OverviewStats
 import com.modkey.app.core.model.SavedAccount
 import com.modkey.app.core.model.SoftStatsResponse
 import com.modkey.app.core.model.SoftwareItem
+import com.modkey.app.ui.components.ButtonVariant
 import com.modkey.app.ui.components.EmptyState
 import com.modkey.app.ui.components.LoadingBlock
+import com.modkey.app.ui.components.ModkeyButton
 import com.modkey.app.ui.components.ModkeyCheckbox
 import com.modkey.app.ui.components.ModkeyDialog
 import com.modkey.app.ui.components.ModkeyFilterChip
 import com.modkey.app.ui.components.ModkeyIconButton
 import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.components.ModkeyLogoMark
 import com.modkey.app.ui.components.ModkeyOutlinedTextField
 import com.modkey.app.ui.components.ModkeySwitch
 import com.modkey.app.ui.components.QuickActionChip
@@ -107,6 +116,8 @@ fun DashboardScreen(
     var overviewStats by remember { mutableStateOf<OverviewStats?>(null) }
     var softStats by remember { mutableStateOf<SoftStatsResponse?>(null) }
     var recentKeys by remember { mutableStateOf<List<KeyItem>>(emptyList()) }
+    var allSoftKeysForChart by remember { mutableStateOf<List<KeyItem>>(emptyList()) }
+    var clientCountries by remember { mutableStateOf<List<ClientCountryStat>>(emptyList()) }
     var meInfo by remember { mutableStateOf<AccountMeInfo?>(null) }
     var errorText by remember { mutableStateOf<String?>(null) }
 
@@ -115,6 +126,10 @@ fun DashboardScreen(
     var showSoftPickerSheet by remember { mutableStateOf(false) }
     var showAccountSwitcherSheet by remember { mutableStateOf(false) }
     var showDomainsSheet by remember { mutableStateOf(false) }
+    var showBansSheet by remember { mutableStateOf(false) }
+    var showLogsStatsSheet by remember { mutableStateOf(false) }
+    var showBlockAllDialog by remember { mutableStateOf(false) }
+    var showUnblockAllDialog by remember { mutableStateOf(false) }
     var showSoftSettingsDialog by remember { mutableStateOf(false) }
     var showExtendKeysDialog by remember { mutableStateOf(false) }
     var extendDaysInput by remember { mutableStateOf("1") }
@@ -149,9 +164,16 @@ fun DashboardScreen(
                     val keysResp = apiClient.getKeys(
                         apiKey = account.apiKey,
                         softId = currentSelected.id,
-                        limit = 8
+                        limit = 100
                     )
-                    recentKeys = keysResp.items
+                    allSoftKeysForChart = keysResp.items
+                    recentKeys = keysResp.items.take(8)
+
+                    launch {
+                        try {
+                            clientCountries = apiClient.getClients(account.apiKey, currentSelected.id)
+                        } catch (_: Exception) {}
+                    }
                 }
             } catch (e: Exception) {
                 errorText = e.message ?: "Ошибка синхронизации данных"
@@ -177,104 +199,144 @@ fun DashboardScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Dashboard Header Bar
+            // Dashboard Header Bar (ModKey Panel Workspace Style)
             item {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Profile button / Account Switcher
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = ModkeyDesign.Colors.surfaceContainerHigh,
-                        border = BorderStroke(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.4f)),
-                        modifier = Modifier.modkeyPress {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            showAccountSwitcherSheet = true
-                        }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ModkeyLogoMark(size = 22.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Workspace",
+                            style = ModkeyDesign.Typography.labelMedium(),
+                            color = ModkeyDesign.Colors.onSurfaceVariant
+                        )
+                        Text(
+                            text = "  /  ",
+                            style = ModkeyDesign.Typography.labelMedium(),
+                            color = ModkeyDesign.Colors.onSurfaceDisabled
+                        )
+                        Text(
+                            text = "Dashboard",
+                            style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.SemiBold),
+                            color = ModkeyDesign.Colors.onSurface
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        // Software Selector Pill
+                        Surface(
+                            shape = ModkeyDesign.Shapes.small,
+                            color = ModkeyDesign.Colors.primaryContainer,
+                            border = BorderStroke(1.dp, ModkeyDesign.Colors.primary.copy(alpha = 0.35f)),
+                            modifier = Modifier.modkeyPress {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                showSoftPickerSheet = true
+                            }
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .clipCircle()
-                                    .background(ModkeyDesign.Colors.primary, CircleShape),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 ModkeyIcon(
-                                    imageVector = Icons.Filled.VpnKey,
+                                    imageVector = Icons.Filled.Computer,
                                     contentDescription = null,
-                                    tint = ModkeyDesign.Colors.onPrimary,
+                                    tint = ModkeyDesign.Colors.primary,
                                     modifier = Modifier.size(14.dp)
                                 )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
+                                Spacer(modifier = Modifier.width(5.dp))
                                 Text(
-                                    text = meInfo?.username?.ifBlank { account.label } ?: account.label,
-                                    style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.Bold)
-                                )
-                                Text(
-                                    text = if (meInfo != null) "${meInfo!!.balance} ₽ • Сменить ▾" else "Сменить ▾",
-                                    style = ModkeyDesign.Typography.labelSmall(),
-                                    color = ModkeyDesign.Colors.primary
+                                    text = selectedSoftware?.name ?: "Выбрать софт",
+                                    style = ModkeyDesign.Typography.labelSmall().copy(fontWeight = FontWeight.SemiBold),
+                                    color = ModkeyDesign.Colors.primary,
+                                    maxLines = 1
                                 )
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Software Selector Chip
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = ModkeyDesign.Colors.primaryContainer,
-                        border = BorderStroke(1.dp, ModkeyDesign.Colors.primary.copy(alpha = 0.4f)),
-                        modifier = Modifier.weight(1f, fill = false).modkeyPress {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            showSoftPickerSheet = true
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        // Refresh Button
+                        ModkeyIconButton(
+                            onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                refreshDashboardData()
+                            },
+                            size = 32.dp,
+                            iconSize = 18.dp
                         ) {
                             ModkeyIcon(
-                                imageVector = Icons.Filled.Computer,
-                                contentDescription = null,
-                                tint = ModkeyDesign.Colors.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = selectedSoftware?.name ?: "Выбрать софт",
-                                style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.Bold),
-                                color = ModkeyDesign.Colors.primary
+                                imageVector = Icons.Filled.Refresh,
+                                contentDescription = "Обновить",
+                                tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
+                }
 
-                    Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                    // Refresh Button
-                    ModkeyIconButton(
-                        onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            refreshDashboardData()
-                        },
-                        iconSize = 22.dp
+                // Greeting + Primary CTAs row (like "Good afternoon, Lonzovich" + Browse keys / + Generate)
+                val displayName = meInfo?.username?.ifBlank { account.label } ?: account.label
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .modkeyPress {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                showAccountSwitcherSheet = true
+                            }
                     ) {
-                        ModkeyIcon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Обновить",
-                            tint = ModkeyDesign.Colors.primary,
-                            modifier = Modifier.size(22.dp)
+                        Text(
+                            text = "Привет, $displayName",
+                            style = ModkeyDesign.Typography.titleLarge().copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 22.sp
+                            ),
+                            maxLines = 1
                         )
+                        Text(
+                            text = if (meInfo != null) "${meInfo!!.balance} ₽ • Сменить аккаунт ▾" else "Сменить аккаунт ▾",
+                            style = ModkeyDesign.Typography.bodySmall(),
+                            color = ModkeyDesign.Colors.onSurfaceVariant
+                        )
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ModkeyButton(
+                            onClick = onNavigateToKeys,
+                            variant = ButtonVariant.Secondary,
+                            shape = ModkeyDesign.Shapes.small,
+                            minHeight = 38.dp
+                        ) {
+                            Text(
+                                text = "Ключи",
+                                style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.SemiBold),
+                                color = ModkeyDesign.Colors.onSurface
+                            )
+                        }
+                        ModkeyButton(
+                            onClick = { if (selectedSoftware != null) showQuickCreateSheet = true },
+                            variant = ButtonVariant.Primary,
+                            shape = ModkeyDesign.Shapes.small,
+                            minHeight = 38.dp
+                        ) {
+                            Text(
+                                text = "+ Создать",
+                                style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.SemiBold),
+                                color = ModkeyDesign.Colors.onPrimary
+                            )
+                        }
                     }
                 }
             }
@@ -444,6 +506,38 @@ fun DashboardScreen(
                         )
 
                         QuickActionChip(
+                            label = "Заблок. все",
+                            icon = Icons.Filled.Block,
+                            onClick = {
+                                if (currentSoft != null) showBlockAllDialog = true
+                            }
+                        )
+
+                        QuickActionChip(
+                            label = "Разблок. все",
+                            icon = Icons.Filled.LockOpen,
+                            onClick = {
+                                if (currentSoft != null) showUnblockAllDialog = true
+                            }
+                        )
+
+                        QuickActionChip(
+                            label = "Баны HWID",
+                            icon = Icons.Filled.Devices,
+                            onClick = {
+                                if (currentSoft != null) showBansSheet = true
+                            }
+                        )
+
+                        QuickActionChip(
+                            label = "Журнал и страны",
+                            icon = Icons.Filled.History,
+                            onClick = {
+                                showLogsStatsSheet = true
+                            }
+                        )
+
+                        QuickActionChip(
                             label = "Зеркала SSL",
                             icon = Icons.Filled.Language,
                             onClick = {
@@ -561,6 +655,248 @@ fun DashboardScreen(
                             badgeColor = ModkeyDesign.Colors.primary,
                             modifier = Modifier.weight(1f)
                         )
+                    }
+                }
+
+                // 3.5 Keys Created (14-day bar chart, ModKey Panel style)
+                if (currentSoft != null) {
+                    item {
+                        val today = remember { java.time.LocalDate.now() }
+                        val dayDates = remember(today) { (13 downTo 0).map { today.minusDays(it.toLong()) } }
+                        val countsByDay = remember(allSoftKeysForChart, dayDates) {
+                            val grouped = allSoftKeysForChart
+                                .mapNotNull { it.createdAt?.take(10) }
+                                .groupingBy { it }
+                                .eachCount()
+                            dayDates.map { d ->
+                                val iso = d.toString()
+                                d to (grouped[iso] ?: 0)
+                            }
+                        }
+                        val maxDayCount = (countsByDay.maxOfOrNull { it.second } ?: 1).coerceAtLeast(1)
+                        val busiestDay = countsByDay.maxByOrNull { it.second }
+
+                        Surface(
+                            shape = ModkeyDesign.Shapes.medium,
+                            color = ModkeyDesign.Colors.surfaceContainer,
+                            border = BorderStroke(1.dp, ModkeyDesign.Colors.outline),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = "Создано ключей (14 дней)",
+                                        style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    val sub = if (busiestDay != null && busiestDay.second > 0) {
+                                        val fmt = java.time.format.DateTimeFormatter.ofPattern("dd.MM")
+                                        "Пик: ${busiestDay.first.format(fmt)} (${busiestDay.second} кл.)"
+                                    } else {
+                                        "Нет созданных ключей за последние 14 дней"
+                                    }
+                                    Text(
+                                        text = sub,
+                                        style = ModkeyDesign.Typography.bodySmall(),
+                                        color = ModkeyDesign.Colors.onSurfaceVariant
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(84.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.Bottom
+                                ) {
+                                    countsByDay.forEach { (date, count) ->
+                                        val ratio = if (count == 0) 0.05f else (count.toFloat() / maxDayCount.toFloat()).coerceIn(0.14f, 1f)
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Bottom
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(0.7f)
+                                                    .height((64 * ratio).dp)
+                                                    .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                                    .background(
+                                                        if (count > 0) ModkeyDesign.Colors.primary
+                                                        else ModkeyDesign.Colors.surfaceContainerHighest
+                                                    )
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = if (date.dayOfMonth % 2 == 1 || date == today) "${date.dayOfMonth}" else "",
+                                                style = ModkeyDesign.Typography.labelSmall().copy(fontSize = 8.sp),
+                                                color = ModkeyDesign.Colors.onSurfaceVariant,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 3.6 Connect Endpoint Card
+                    item {
+                        val connectUrl = "https://mod.wtf/${currentSoft.id}/connect"
+                        Surface(
+                            shape = ModkeyDesign.Shapes.medium,
+                            color = ModkeyDesign.Colors.surfaceContainer,
+                            border = BorderStroke(1.dp, ModkeyDesign.Colors.outline),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Connect",
+                                        style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        text = "Управление доменами",
+                                        style = ModkeyDesign.Typography.labelSmall().copy(fontWeight = FontWeight.SemiBold),
+                                        color = ModkeyDesign.Colors.primary,
+                                        modifier = Modifier.modkeyPress { showDomainsSheet = true }
+                                    )
+                                }
+
+                                Surface(
+                                    shape = ModkeyDesign.Shapes.small,
+                                    color = ModkeyDesign.Colors.background,
+                                    border = BorderStroke(1.dp, ModkeyDesign.Colors.outline),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = connectUrl,
+                                            style = ModkeyDesign.Typography.bodySmall().copy(fontFamily = FontFamily.Monospace),
+                                            color = ModkeyDesign.Colors.onSurface,
+                                            maxLines = 1,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Surface(
+                                            shape = ModkeyDesign.Shapes.extraSmall,
+                                            color = ModkeyDesign.Colors.surfaceContainerHigh,
+                                            border = BorderStroke(1.dp, ModkeyDesign.Colors.outline),
+                                            modifier = Modifier.modkeyPress {
+                                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                                clipboard.setPrimaryClip(ClipData.newPlainText("Connect URL", connectUrl))
+                                                Toast.makeText(context, "URL скопирован", Toast.LENGTH_SHORT).show()
+                                            }
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                ModkeyIcon(
+                                                    imageVector = Icons.Filled.ContentCopy,
+                                                    contentDescription = null,
+                                                    tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                                    modifier = Modifier.size(13.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "Copy",
+                                                    style = ModkeyDesign.Typography.labelSmall(),
+                                                    color = ModkeyDesign.Colors.onSurface
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 3.7 Where your clients are (Countries preview card)
+                    if (clientCountries.isNotEmpty()) {
+                        item {
+                            val topCountries = clientCountries.take(4)
+                            val maxC = (topCountries.maxOfOrNull { it.clientsCount } ?: 1).coerceAtLeast(1)
+                            Surface(
+                                shape = ModkeyDesign.Shapes.medium,
+                                color = ModkeyDesign.Colors.surfaceContainer,
+                                border = BorderStroke(1.dp, ModkeyDesign.Colors.outline),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "География клиентов",
+                                            style = ModkeyDesign.Typography.titleSmall().copy(fontWeight = FontWeight.Bold)
+                                        )
+                                        Text(
+                                            text = "Подробнее",
+                                            style = ModkeyDesign.Typography.labelSmall().copy(fontWeight = FontWeight.SemiBold),
+                                            color = ModkeyDesign.Colors.primary,
+                                            modifier = Modifier.modkeyPress { showLogsStatsSheet = true }
+                                        )
+                                    }
+
+                                    topCountries.forEach { stat ->
+                                        val frac = (stat.clientsCount.toFloat() / maxC.toFloat()).coerceIn(0.06f, 1f)
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(
+                                                    text = listOfNotNull(stat.countryCode, stat.country.ifBlank { "Unknown" }).joinToString("  "),
+                                                    style = ModkeyDesign.Typography.bodySmall().copy(fontWeight = FontWeight.Medium)
+                                                )
+                                                Text(
+                                                    text = "${stat.clientsCount}" + (stat.percent?.let { " (${String.format("%.0f", it)}%)" } ?: ""),
+                                                    style = ModkeyDesign.Typography.labelSmall(),
+                                                    color = ModkeyDesign.Colors.onSurfaceVariant
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(4.dp)
+                                                    .clip(CircleShape)
+                                                    .background(ModkeyDesign.Colors.surfaceContainerHighest)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(frac)
+                                                        .height(4.dp)
+                                                        .clip(CircleShape)
+                                                        .background(ModkeyDesign.Colors.primary)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -726,6 +1062,82 @@ fun DashboardScreen(
             onDismiss = { showDomainsSheet = false },
             onDomainsChanged = { refreshDashboardData() }
         )
+    }
+
+    // Modal: Device Bans
+    if (showBansSheet && selectedSoftware != null) {
+        DeviceBansBottomSheet(
+            apiKey = account.apiKey,
+            software = selectedSoftware!!,
+            onDismiss = { showBansSheet = false }
+        )
+    }
+
+    // Modal: Logs & Stats
+    if (showLogsStatsSheet) {
+        LogsAndStatsBottomSheet(
+            apiKey = account.apiKey,
+            software = selectedSoftware,
+            onDismiss = { showLogsStatsSheet = false }
+        )
+    }
+
+    // Dialog: Block All Keys
+    if (showBlockAllDialog && selectedSoftware != null) {
+        val soft = selectedSoftware!!
+        ModkeyDialog(
+            title = "Заблокировать все ключи?",
+            onDismiss = { showBlockAllDialog = false },
+            confirmLabel = "Заблокировать",
+            confirmContainerColor = ModkeyDesign.Colors.error,
+            confirmContentColor = ModkeyDesign.Colors.onError,
+            onConfirm = {
+                showBlockAllDialog = false
+                scope.launch {
+                    try {
+                        apiClient.blockKeys(account.apiKey, soft.id)
+                        Toast.makeText(context, "Все ключи заблокированы", Toast.LENGTH_SHORT).show()
+                        refreshDashboardData()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        ) {
+            Text(
+                text = "Все ключи проекта «${soft.name}» будут переведены в статус заблокированных.",
+                style = ModkeyDesign.Typography.bodyMedium(),
+                color = ModkeyDesign.Colors.onSurfaceVariant
+            )
+        }
+    }
+
+    // Dialog: Unblock All Keys
+    if (showUnblockAllDialog && selectedSoftware != null) {
+        val soft = selectedSoftware!!
+        ModkeyDialog(
+            title = "Разблокировать все ключи?",
+            onDismiss = { showUnblockAllDialog = false },
+            confirmLabel = "Разблокировать",
+            onConfirm = {
+                showUnblockAllDialog = false
+                scope.launch {
+                    try {
+                        apiClient.unblockKeys(account.apiKey, soft.id)
+                        Toast.makeText(context, "Все ключи разблокированы", Toast.LENGTH_SHORT).show()
+                        refreshDashboardData()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        ) {
+            Text(
+                text = "Блокировка со всех ключей проекта «${soft.name}» будет снята.",
+                style = ModkeyDesign.Typography.bodyMedium(),
+                color = ModkeyDesign.Colors.onSurfaceVariant
+            )
+        }
     }
 
     // Dialog: Software Settings (edit-soft)

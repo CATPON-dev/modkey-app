@@ -60,16 +60,16 @@ fun isDarkTheme(themeMode: ThemeMode): Boolean = when (themeMode) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 fun connectedItemShape(index: Int, total: Int): RoundedCornerShape = when {
-    total <= 1 -> RoundedCornerShape(18.dp)
+    total <= 1 -> RoundedCornerShape(12.dp)
     index == 0 -> RoundedCornerShape(
-        topStart = 18.dp, topEnd = 18.dp,
-        bottomStart = 8.dp, bottomEnd = 8.dp
+        topStart = 12.dp, topEnd = 12.dp,
+        bottomStart = 6.dp, bottomEnd = 6.dp
     )
     index == total - 1 -> RoundedCornerShape(
-        topStart = 8.dp, topEnd = 8.dp,
-        bottomStart = 18.dp, bottomEnd = 18.dp
+        topStart = 6.dp, topEnd = 6.dp,
+        bottomStart = 12.dp, bottomEnd = 12.dp
     )
-    else -> RoundedCornerShape(8.dp)
+    else -> RoundedCornerShape(6.dp)
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

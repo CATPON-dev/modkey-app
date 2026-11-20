@@ -1,5 +1,8 @@
 package com.modkey.app.ui.users
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -26,9 +29,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
@@ -50,6 +56,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.modkey.app.ModkeyApp
+import com.modkey.app.core.model.ReferralCodeItem
 import com.modkey.app.core.model.SavedAccount
 import com.modkey.app.core.model.UserItem
 import com.modkey.app.ui.components.EmptyState
@@ -85,33 +92,40 @@ fun UsersScreen(
     val scope = rememberCoroutineScope()
     val apiClient = ModkeyApp.instance.apiClient
 
+    var selectedSection by remember { mutableIntStateOf(0) } // 0: Users, 1: Referral Codes
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf(UserFilter.ALL) }
     var usersList by remember { mutableStateOf<List<UserItem>>(emptyList()) }
+    var referralCodes by remember { mutableStateOf<List<ReferralCodeItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
     var showCreateUserDialog by remember { mutableStateOf(false) }
+    var showCreateReferralDialog by remember { mutableStateOf(false) }
     var editingUser by remember { mutableStateOf<UserItem?>(null) }
 
     fun loadUsers() {
         isLoading = true
         scope.launch {
             try {
-                val levelParam = when (selectedFilter) {
-                    UserFilter.RESELLERS -> 3
-                    UserFilter.ADMINS -> 2
-                    else -> null
+                if (selectedSection == 0) {
+                    val levelParam = when (selectedFilter) {
+                        UserFilter.RESELLERS -> 3
+                        UserFilter.ADMINS -> 2
+                        else -> null
+                    }
+                    val statusParam = when (selectedFilter) {
+                        UserFilter.BLOCKED -> 0
+                        else -> null
+                    }
+                    usersList = apiClient.getUsers(
+                        apiKey = account.apiKey,
+                        query = searchQuery.ifBlank { null },
+                        level = levelParam,
+                        status = statusParam
+                    )
+                } else {
+                    referralCodes = apiClient.getReferralCodes(account.apiKey)
                 }
-                val statusParam = when (selectedFilter) {
-                    UserFilter.BLOCKED -> 0
-                    else -> null
-                }
-                usersList = apiClient.getUsers(
-                    apiKey = account.apiKey,
-                    query = searchQuery.ifBlank { null },
-                    level = levelParam,
-                    status = statusParam
-                )
             } catch (e: Exception) {
                 Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
             } finally {
@@ -120,7 +134,7 @@ fun UsersScreen(
         }
     }
 
-    LaunchedEffect(account.id, searchQuery, selectedFilter) {
+    LaunchedEffect(account.id, selectedSection, searchQuery, selectedFilter) {
         loadUsers()
     }
 
@@ -137,11 +151,137 @@ fun UsersScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
             SectionHeader(
-                title = "Реселлеры и клиенты (${usersList.size})",
-                subtitle = "Управление балансом, ролями, блокировкой и сессиями",
+                title = if (selectedSection == 0) "Реселлеры и клиенты (${usersList.size})" else "Реферальные коды (${referralCodes.size})",
+                subtitle = if (selectedSection == 0) "Управление балансом, ролями, блокировкой и сессиями" else "Промокоды со скидкой и бонусными днями",
                 actionLabel = "Обновить",
                 onActionClick = { loadUsers() }
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ModkeyFilterChip(
+                    selected = selectedSection == 0,
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        selectedSection = 0
+                    },
+                    label = "Пользователи",
+                    leadingIcon = Icons.Filled.People
+                )
+                ModkeyFilterChip(
+                    selected = selectedSection == 1,
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        selectedSection = 1
+                    },
+                    label = "Рефералы",
+                    leadingIcon = Icons.Filled.CardGiftcard
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (selectedSection == 1) {
+                if (isLoading) {
+                    LoadingBlock(message = "Загрузка реферальных кодов...")
+                } else if (referralCodes.isEmpty()) {
+                    EmptyState(
+                        icon = Icons.Filled.CardGiftcard,
+                        title = "Нет реферальных кодов",
+                        message = "Нажмите «+» внизу справа, чтобы создать новый реферальный код."
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        itemsIndexed(referralCodes) { index, ref ->
+                            Surface(
+                                shape = connectedItemShape(index, referralCodes.size),
+                                color = ModkeyDesign.Colors.surfaceContainerHigh,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.25f)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(
+                                            text = ref.code.ifBlank { "CODE #${ref.id}" },
+                                            style = ModkeyDesign.Typography.titleMedium().copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                            )
+                                        )
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            if (ref.discount > 0) {
+                                                StatusBadge(text = "-${ref.discount}%", color = ModkeyDesign.Colors.primary)
+                                            }
+                                            if (ref.bonusDays > 0) {
+                                                StatusBadge(text = "+${ref.bonusDays} дн.", color = ModkeyDesign.Colors.success)
+                                            }
+                                            StatusBadge(
+                                                text = if (ref.maxUses > 0) "${ref.totalUsed}/${ref.maxUses}" else "${ref.totalUsed} исп.",
+                                                color = ModkeyDesign.Colors.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        ModkeyIconButton(
+                                            onClick = {
+                                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                                clipboard.setPrimaryClip(ClipData.newPlainText("Referral", ref.code))
+                                                Toast.makeText(context, "Код скопирован", Toast.LENGTH_SHORT).show()
+                                            }
+                                        ) {
+                                            ModkeyIcon(
+                                                imageVector = Icons.Filled.ContentCopy,
+                                                contentDescription = "Копировать",
+                                                tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        ModkeyIconButton(
+                                            onClick = {
+                                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                                scope.launch {
+                                                    try {
+                                                        apiClient.deleteReferralCode(account.apiKey, ref.id)
+                                                        Toast.makeText(context, "Код удалён", Toast.LENGTH_SHORT).show()
+                                                        loadUsers()
+                                                    } catch (e: Exception) {
+                                                        Toast.makeText(context, e.message ?: "Ошибка удаления", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            ModkeyIcon(
+                                                imageVector = Icons.Filled.Delete,
+                                                contentDescription = "Удалить",
+                                                tint = ModkeyDesign.Colors.error,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(84.dp))
+                        }
+                    }
+                }
+            } else {
 
             // Search Bar
             ModkeyOutlinedTextField(
@@ -410,21 +550,77 @@ fun UsersScreen(
                     }
                 }
             }
+            }
         }
 
-        // Floating Create User button
-        if (!showCreateUserDialog) {
+        // Floating Action Button
+        if (!showCreateUserDialog && !showCreateReferralDialog) {
             ModkeyFab(
                 onClick = {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    showCreateUserDialog = true
+                    if (selectedSection == 0) showCreateUserDialog = true else showCreateReferralDialog = true
                 },
-                icon = Icons.Filled.PersonAdd,
+                icon = if (selectedSection == 0) Icons.Filled.PersonAdd else Icons.Filled.Add,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .navigationBarsPadding()
                     .padding(end = 18.dp, bottom = 96.dp)
             )
+        }
+    }
+
+    // Create Referral Code Dialog (create-referral-code)
+    if (showCreateReferralDialog) {
+        var codeInput by remember { mutableStateOf("") }
+        var discountInput by remember { mutableStateOf("10") }
+        var bonusDaysInput by remember { mutableStateOf("0") }
+        var maxUsesInput by remember { mutableStateOf("0") }
+
+        ModkeyDialog(
+            title = "Создать реферальный код",
+            onDismiss = { showCreateReferralDialog = false },
+            confirmLabel = "Создать",
+            onConfirm = {
+                scope.launch {
+                    try {
+                        apiClient.createReferralCode(
+                            apiKey = account.apiKey,
+                            code = codeInput.ifBlank { null },
+                            discount = discountInput.toIntOrNull() ?: 0,
+                            bonusDays = bonusDaysInput.toIntOrNull() ?: 0,
+                            maxUses = maxUsesInput.toIntOrNull() ?: 0
+                        )
+                        showCreateReferralDialog = false
+                        Toast.makeText(context, "Реферальный код создан", Toast.LENGTH_SHORT).show()
+                        loadUsers()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message ?: "Ошибка создания", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ModkeyOutlinedTextField(
+                    value = codeInput,
+                    onValueChange = { codeInput = it },
+                    label = "Код (пусто = автогенерация)"
+                )
+                ModkeyOutlinedTextField(
+                    value = discountInput,
+                    onValueChange = { discountInput = it },
+                    label = "Скидка (%)"
+                )
+                ModkeyOutlinedTextField(
+                    value = bonusDaysInput,
+                    onValueChange = { bonusDaysInput = it },
+                    label = "Бонусные дни"
+                )
+                ModkeyOutlinedTextField(
+                    value = maxUsesInput,
+                    onValueChange = { maxUsesInput = it },
+                    label = "Макс. использований (0 = безлимит)"
+                )
+            }
         }
     }
 

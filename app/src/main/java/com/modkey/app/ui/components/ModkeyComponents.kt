@@ -35,8 +35,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
@@ -112,15 +114,44 @@ fun SectionHeader(
 }
 
 @Composable
+fun ModkeyLogoMark(
+    modifier: Modifier = Modifier,
+    size: Dp = 26.dp,
+    color: Color = ModkeyDesign.Colors.primary
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+        val strokeWidth = w * 0.17f
+        val path = Path().apply {
+            moveTo(w * 0.16f, h * 0.84f)
+            lineTo(w * 0.16f, h * 0.22f)
+            lineTo(w * 0.50f, h * 0.62f)
+            lineTo(w * 0.84f, h * 0.22f)
+            lineTo(w * 0.84f, h * 0.84f)
+        }
+        drawPath(
+            path = path,
+            color = color,
+            style = Stroke(
+                width = strokeWidth,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
+    }
+}
+
+@Composable
 fun StatCard(
     title: String,
     value: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    containerColor: Color = ModkeyDesign.Colors.surfaceContainerHigh,
+    containerColor: Color = ModkeyDesign.Colors.surfaceContainer,
     contentColor: Color = ModkeyDesign.Colors.onSurface,
-    badgeColor: Color = ModkeyDesign.Colors.primary,
+    badgeColor: Color = ModkeyDesign.Colors.onSurfaceVariant,
     onClick: (() -> Unit)? = null
 ) {
     val view = LocalView.current
@@ -132,9 +163,9 @@ fun StatCard(
             }
         } else null,
         enabled = onClick != null,
-        shape = ModkeyDesign.Shapes.large,
+        shape = ModkeyDesign.Shapes.medium,
         color = containerColor,
-        border = BorderStroke(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.25f)),
+        border = BorderStroke(1.dp, ModkeyDesign.Colors.outline),
         modifier = modifier
     ) {
         Column(
@@ -143,48 +174,38 @@ fun StatCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                ModkeyIcon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = badgeColor,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = title,
-                    style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.SemiBold),
+                    style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.Medium),
                     color = ModkeyDesign.Colors.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(ModkeyDesign.Shapes.small)
-                        .background(badgeColor.copy(alpha = 0.15f), ModkeyDesign.Shapes.small),
-                    contentAlignment = Alignment.Center
-                ) {
-                    ModkeyIcon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = badgeColor,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = value,
                 style = ModkeyDesign.Typography.headlineLarge().copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 26.sp
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp
                 ),
                 color = contentColor
             )
             if (subtitle != null) {
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = subtitle,
                     style = ModkeyDesign.Typography.bodySmall(),
-                    color = ModkeyDesign.Colors.onSurfaceVariant.copy(alpha = 0.8f),
+                    color = ModkeyDesign.Colors.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -201,12 +222,13 @@ fun StatusBadge(
 ) {
     Box(
         modifier = modifier
-            .clip(ModkeyDesign.Shapes.extraSmall)
-            .background(color.copy(alpha = 0.15f)),
+            .clip(CircleShape)
+            .background(color.copy(alpha = 0.12f), CircleShape)
+            .border(1.dp, color.copy(alpha = 0.28f), CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -215,10 +237,10 @@ fun StatusBadge(
                     .clip(CircleShape)
                     .background(color)
             )
-            Spacer(modifier = Modifier.width(5.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = text,
-                style = ModkeyDesign.Typography.labelSmall().copy(fontWeight = FontWeight.Bold),
+                style = ModkeyDesign.Typography.labelSmall().copy(fontWeight = FontWeight.SemiBold),
                 color = color
             )
         }
@@ -237,9 +259,9 @@ fun QuickActionChip(
     val view = LocalView.current
     Box(
         modifier = modifier
-            .clip(ModkeyDesign.Shapes.medium)
-            .background(containerColor, ModkeyDesign.Shapes.medium)
-            .border(1.dp, ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.25f), ModkeyDesign.Shapes.medium)
+            .clip(ModkeyDesign.Shapes.small)
+            .background(containerColor, ModkeyDesign.Shapes.small)
+            .border(1.dp, ModkeyDesign.Colors.outline, ModkeyDesign.Shapes.small)
             .modkeyPress {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 onClick()
@@ -440,67 +462,70 @@ fun BottomScaffold(
             .fillMaxSize()
             .background(ModkeyDesign.Colors.background)
     ) {
-        content(PaddingValues(bottom = 84.dp))
+        content(PaddingValues(bottom = 76.dp))
 
-        Box(
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 14.dp)
+                .fillMaxWidth()
+                .background(ModkeyDesign.Colors.surface)
         ) {
             Box(
                 modifier = Modifier
-                    .clip(ModkeyDesign.Shapes.extraLarge)
-                    .background(ModkeyDesign.Colors.surfaceContainer)
-                    .border(
-                        1.dp,
-                        ModkeyDesign.Colors.outlineVariant.copy(alpha = 0.4f),
-                        ModkeyDesign.Shapes.extraLarge
-                    )
-                    .width(340.dp)
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(ModkeyDesign.Colors.outline)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    MainDestination.entries.forEach { dest ->
-                        val isSelected = currentDestination == dest
-                        val tint = if (isSelected) ModkeyDesign.Colors.primary
-                        else ModkeyDesign.Colors.onSurfaceVariant
+                MainDestination.entries.forEach { dest ->
+                    val isSelected = currentDestination == dest
+                    val tint = if (isSelected) ModkeyDesign.Colors.primary
+                    else ModkeyDesign.Colors.onSurfaceVariant
 
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(ModkeyDesign.Shapes.small)
-                                .modkeyPress {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    onDestinationClick(dest)
-                                }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            ModkeyIcon(
-                                imageVector = when (dest) {
-                                    MainDestination.DASHBOARD -> Icons.Filled.Dashboard
-                                    MainDestination.KEYS -> Icons.Filled.VpnKey
-                                    MainDestination.USERS -> Icons.Filled.People
-                                    MainDestination.CONNECT -> Icons.Filled.BugReport
-                                    MainDestination.SETTINGS -> Icons.Filled.Settings
-                                },
-                                contentDescription = dest.label,
-                                tint = tint,
-                                modifier = Modifier.size(23.dp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(ModkeyDesign.Shapes.small)
+                            .background(
+                                if (isSelected) ModkeyDesign.Colors.primaryContainer else Color.Transparent,
+                                ModkeyDesign.Shapes.small
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = dest.label,
-                                style = ModkeyDesign.Typography.labelSmall().copy(fontSize = 9.sp),
-                                color = tint,
-                                maxLines = 1
-                            )
-                        }
+                            .modkeyPress {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                onDestinationClick(dest)
+                            }
+                            .padding(vertical = 6.dp)
+                    ) {
+                        ModkeyIcon(
+                            imageVector = when (dest) {
+                                MainDestination.DASHBOARD -> Icons.Filled.Dashboard
+                                MainDestination.KEYS -> Icons.Filled.VpnKey
+                                MainDestination.USERS -> Icons.Filled.People
+                                MainDestination.CONNECT -> Icons.Filled.BugReport
+                                MainDestination.SETTINGS -> Icons.Filled.Settings
+                            },
+                            contentDescription = dest.label,
+                            tint = tint,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = dest.label,
+                            style = ModkeyDesign.Typography.labelSmall().copy(
+                                fontSize = 10.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                            ),
+                            color = tint,
+                            maxLines = 1
+                        )
                     }
                 }
             }

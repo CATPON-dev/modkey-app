@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.Pause
@@ -66,6 +67,7 @@ import com.modkey.app.ui.components.ModkeyFilterChip
 import com.modkey.app.ui.components.ModkeyDialog
 import com.modkey.app.ui.components.ModkeyIconButton
 import com.modkey.app.ui.components.ModkeyIcon
+import com.modkey.app.ui.components.ModkeyLogoMark
 import com.modkey.app.ui.components.ModkeyOutlinedTextField
 import com.modkey.app.ui.components.SectionHeader
 import com.modkey.app.ui.components.StatCard
@@ -73,6 +75,7 @@ import com.modkey.app.ui.components.StatusBadge
 import com.modkey.app.ui.components.Surface
 import com.modkey.app.ui.components.SurfaceChip
 import com.modkey.app.ui.components.Text
+import com.modkey.app.ui.dashboard.DeviceBansBottomSheet
 import com.modkey.app.ui.dashboard.QuickCreateKeyBottomSheet
 import com.modkey.app.ui.theme.ModkeyDesign
 import com.modkey.app.ui.theme.connectedItemShape
@@ -109,6 +112,7 @@ fun KeysScreen(
     var showCreateSheet by remember { mutableStateOf(false) }
     var showBulkCleanupDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
+    var showBansSheet by remember { mutableStateOf(false) }
     var editingKeyItem by remember { mutableStateOf<KeyItem?>(null) }
 
     fun loadKeys() {
@@ -174,7 +178,30 @@ fun KeysScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Breadcrumb: Workspace / Keys
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ModkeyLogoMark(size = 18.dp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Workspace",
+                    style = ModkeyDesign.Typography.labelMedium(),
+                    color = ModkeyDesign.Colors.onSurfaceVariant
+                )
+                Text(
+                    text = "  /  ",
+                    style = ModkeyDesign.Typography.labelMedium(),
+                    color = ModkeyDesign.Colors.onSurfaceDisabled
+                )
+                Text(
+                    text = "Keys",
+                    style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.SemiBold),
+                    color = ModkeyDesign.Colors.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Top Header + Bulk Cleanup & Export buttons
             Row(
@@ -184,17 +211,40 @@ fun KeysScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Ключи доступа ($totalKeysCount)",
-                        style = ModkeyDesign.Typography.titleLarge().copy(fontWeight = FontWeight.ExtraBold)
+                        text = "Ключи ($totalKeysCount)",
+                        style = ModkeyDesign.Typography.titleLarge().copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
-                        text = "Управление, фильтры, экспорт и HWID",
+                        text = selectedSoft?.name?.let { "Проект: $it" } ?: "Управление, фильтры и HWID",
                         style = ModkeyDesign.Typography.bodySmall(),
                         color = ModkeyDesign.Colors.onSurfaceVariant
                     )
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    SurfaceChip(
+                        onClick = { if (selectedSoft != null) showBansSheet = true },
+                        shape = ModkeyDesign.Shapes.small,
+                        color = ModkeyDesign.Colors.surfaceContainerHigh
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+                        ) {
+                            ModkeyIcon(
+                                imageVector = Icons.Filled.Devices,
+                                contentDescription = null,
+                                tint = ModkeyDesign.Colors.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "Баны",
+                                style = ModkeyDesign.Typography.labelSmall().copy(fontWeight = FontWeight.Bold),
+                                color = ModkeyDesign.Colors.onSurface
+                            )
+                        }
+                    }
                     SurfaceChip(
                         onClick = { showBulkCleanupDialog = true },
                         shape = ModkeyDesign.Shapes.small,
@@ -643,38 +693,62 @@ fun KeysScreen(
         }
     }
 
-    // Bulk Cleanup Dialog (delete-keys)
+    // Bulk Cleanup & Mass Block Dialog (delete-keys, block-keys, unblock-keys)
     if (showBulkCleanupDialog && selectedSoftId != null) {
         val cleanupKinds = listOf(
-            "expired" to "Истекшие ключи (Expired)",
-            "unused" to "Неактивированные (Unused)",
-            "blocked" to "Заблокированные (Blocked)",
-            "inactive" to "На паузе (Paused)"
+            "block_all" to "Заблокировать все ключи (Block All)",
+            "unblock_all" to "Разблокировать все ключи (Unblock All)",
+            "expired" to "Удалить истекшие (Expired)",
+            "unused" to "Удалить неактивированные (Unused)",
+            "blocked" to "Удалить заблокированные (Blocked)",
+            "inactive" to "Удалить на паузе (Paused)"
         )
         var selectedKind by remember { mutableStateOf("expired") }
 
+        val isDeleteAction = selectedKind !in listOf("block_all", "unblock_all")
         ModkeyDialog(
-            title = "Массовая очистка ключей",
+            title = "Массовые действия с ключами",
             onDismiss = { showBulkCleanupDialog = false },
-            confirmLabel = "Удалить выбранные",
-            confirmContainerColor = ModkeyDesign.Colors.error,
-            confirmContentColor = ModkeyDesign.Colors.onError,
+            confirmLabel = when (selectedKind) {
+                "block_all" -> "Заблокировать все"
+                "unblock_all" -> "Разблокировать все"
+                else -> "Удалить выбранные"
+            },
+            confirmContainerColor = if (selectedKind == "unblock_all") ModkeyDesign.Colors.primary else ModkeyDesign.Colors.error,
+            confirmContentColor = if (selectedKind == "unblock_all") ModkeyDesign.Colors.onPrimary else ModkeyDesign.Colors.onError,
             onConfirm = {
                 scope.launch {
                     try {
-                        val deletedCount = apiClient.deleteKeysBulk(account.apiKey, selectedSoftId!!, selectedKind)
-                        showBulkCleanupDialog = false
-                        Toast.makeText(context, "Удалено ключей: $deletedCount", Toast.LENGTH_LONG).show()
+                        when (selectedKind) {
+                            "block_all" -> {
+                                apiClient.blockKeys(account.apiKey, selectedSoftId!!)
+                                showBulkCleanupDialog = false
+                                Toast.makeText(context, "Все ключи заблокированы", Toast.LENGTH_LONG).show()
+                            }
+                            "unblock_all" -> {
+                                apiClient.unblockKeys(account.apiKey, selectedSoftId!!)
+                                showBulkCleanupDialog = false
+                                Toast.makeText(context, "Все ключи разблокированы", Toast.LENGTH_LONG).show()
+                            }
+                            else -> {
+                                val deletedCount = apiClient.deleteKeysBulk(account.apiKey, selectedSoftId!!, selectedKind)
+                                showBulkCleanupDialog = false
+                                Toast.makeText(context, "Удалено ключей: $deletedCount", Toast.LENGTH_LONG).show()
+                            }
+                        }
                         loadKeys()
                     } catch (e: Exception) {
-                        Toast.makeText(context, e.message ?: "Ошибка очистки", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, e.message ?: "Ошибка операции", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Выберите категорию ключей для безвозвратного удаления из базы:",
+                    text = if (isDeleteAction)
+                        "Выберите массовое действие или категорию для удаления из базы:"
+                    else
+                        "Действие применится ко всем ключам выбранного софта:",
                     style = ModkeyDesign.Typography.bodySmall(),
                     color = ModkeyDesign.Colors.onSurfaceVariant
                 )
@@ -709,6 +783,14 @@ fun KeysScreen(
                 }
             }
         }
+    }
+
+    if (showBansSheet && selectedSoft != null) {
+        DeviceBansBottomSheet(
+            apiKey = account.apiKey,
+            software = selectedSoft,
+            onDismiss = { showBansSheet = false }
+        )
     }
 
     // Export Keys Dialog (export-keys)

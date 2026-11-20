@@ -386,38 +386,29 @@ fun ConnectDebuggerScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(ModkeyDesign.Colors.surfaceContainerLow, RoundedCornerShape(16.dp))
-                        .padding(3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    listOf("Тестер Connect" to 0, "Генератор кода" to 1).forEach { (label, idx) ->
-                        val isSelected = selectedTab == idx
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(
-                                    if (isSelected) ModkeyDesign.Colors.primary else Color.Transparent,
-                                    RoundedCornerShape(13.dp)
-                                )
-                                .modkeyPress {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    selectedTab = idx
-                                }
-                                .padding(vertical = 9.dp)
-                        ) {
-                            Text(
-                                text = label,
-                                style = ModkeyDesign.Typography.labelMedium().copy(fontWeight = FontWeight.Bold),
-                                color = if (isSelected) ModkeyDesign.Colors.onPrimary else ModkeyDesign.Colors.onSurfaceVariant,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                    listOf(
+                        "Тестер" to 0,
+                        "Код" to 1,
+                        "Настройки" to 2,
+                        "Online" to 3,
+                        "Файлы" to 4
+                    ).forEach { (label, idx) ->
+                        ModkeyFilterChip(
+                            selected = selectedTab == idx,
+                            onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                selectedTab = idx
+                            },
+                            label = label
+                        )
                     }
                 }
             }
 
+            if (selectedTab == 0 || selectedTab == 1) {
             // HWID Device Card
             item {
                 Surface(
@@ -491,6 +482,7 @@ fun ConnectDebuggerScreen(
                         )
                     }
                 }
+            }
             }
 
             if (selectedTab == 0) {
@@ -685,7 +677,7 @@ fun ConnectDebuggerScreen(
                         }
                     }
                 }
-            } else {
+            } else if (selectedTab == 1) {
                 // Tab 1: Client Code Generator
                 item {
                     Surface(
@@ -805,6 +797,27 @@ fun ConnectDebuggerScreen(
                             }
                         }
                     }
+                }
+            } else if (selectedTab == 2) {
+                item {
+                    ConnectSettingsTab(
+                        apiKey = account.apiKey,
+                        softId = softIdInput.toIntOrNull()
+                    )
+                }
+            } else if (selectedTab == 3) {
+                item {
+                    ConnectOnlineTab(
+                        apiKey = account.apiKey,
+                        softId = softIdInput.toIntOrNull()
+                    )
+                }
+            } else if (selectedTab == 4) {
+                item {
+                    ConnectFilesTab(
+                        apiKey = account.apiKey,
+                        softId = softIdInput.toIntOrNull()
+                    )
                 }
             }
 

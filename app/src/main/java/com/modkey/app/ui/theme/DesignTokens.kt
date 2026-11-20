@@ -56,55 +56,55 @@ data class ModkeyPalette(
 )
 
 val DarkModkeyPalette = ModkeyPalette(
-    primary = Color(0xFF00D4FF),
-    primaryContainer = Color(0xFF00D4FF).copy(alpha = 0.12f),
-    onPrimary = Color(0xFF000000),
-    background = Color(0xFF0A0A0F),
-    surface = Color(0xFF13131A),
-    surfaceContainer = Color(0xFF1A1A22),
-    surfaceContainerLow = Color(0xFF16161D),
-    surfaceContainerHigh = Color(0xFF22222C),
-    surfaceContainerHighest = Color(0xFF2A2A35),
-    onSurface = Color(0xFFFFFFFF),
-    onSurfaceVariant = Color(0xFF9494A3),
-    onSurfaceDisabled = Color(0xFF5A5A6B),
-    outline = Color(0xFF2A2A35),
-    outlineVariant = Color(0xFF1F1F29),
-    error = Color(0xFFFF4D4F),
-    errorContainer = Color(0xFFFF4D4F).copy(alpha = 0.12f),
+    primary = Color(0xFF3B82F6),
+    primaryContainer = Color(0xFF10223E),
+    onPrimary = Color(0xFFFFFFFF),
+    background = Color(0xFF090A0D),
+    surface = Color(0xFF0E1014),
+    surfaceContainer = Color(0xFF121419),
+    surfaceContainerLow = Color(0xFF0E1014),
+    surfaceContainerHigh = Color(0xFF161920),
+    surfaceContainerHighest = Color(0xFF1E222B),
+    onSurface = Color(0xFFF4F6FA),
+    onSurfaceVariant = Color(0xFF8A92A2),
+    onSurfaceDisabled = Color(0xFF525866),
+    outline = Color(0xFF232732),
+    outlineVariant = Color(0xFF1B1F28),
+    error = Color(0xFFEF4444),
+    errorContainer = Color(0xFFEF4444).copy(alpha = 0.14f),
     onError = Color(0xFFFFFFFF),
-    onErrorContainer = Color(0xFFFFFFFF),
-    success = Color(0xFF00C896),
-    successContainer = Color(0xFF00C896).copy(alpha = 0.12f),
-    warning = Color(0xFFFFA940),
-    warningContainer = Color(0xFFFFA940).copy(alpha = 0.12f),
-    divider = Color(0xFF1F1F29)
+    onErrorContainer = Color(0xFFFCA5A5),
+    success = Color(0xFF22C55E),
+    successContainer = Color(0xFF22C55E).copy(alpha = 0.14f),
+    warning = Color(0xFFF59E0B),
+    warningContainer = Color(0xFFF59E0B).copy(alpha = 0.14f),
+    divider = Color(0xFF1B1F28)
 )
 
 val LightModkeyPalette = ModkeyPalette(
-    primary = Color(0xFF00A0CB),
-    primaryContainer = Color(0xFF00D4FF).copy(alpha = 0.18f),
-    onPrimary = Color(0xFF000000),
-    background = Color(0xFFF4F6FA),
+    primary = Color(0xFF2563EB),
+    primaryContainer = Color(0xFFDBEAFE),
+    onPrimary = Color(0xFFFFFFFF),
+    background = Color(0xFFFAFAFC),
     surface = Color(0xFFFFFFFF),
-    surfaceContainer = Color(0xFFF2F4F9),
-    surfaceContainerLow = Color(0xFFF8F9FC),
-    surfaceContainerHigh = Color(0xFFEAEEF4),
-    surfaceContainerHighest = Color(0xFFDFE5ED),
-    onSurface = Color(0xFF0E1319),
-    onSurfaceVariant = Color(0xFF5C6673),
-    onSurfaceDisabled = Color(0xFFA6ADB9),
-    outline = Color(0xFFD7DDE7),
-    outlineVariant = Color(0xFFE7EBF1),
-    error = Color(0xFFE5484D),
-    errorContainer = Color(0xFFE5484D).copy(alpha = 0.12f),
+    surfaceContainer = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF6F7F9),
+    surfaceContainerHigh = Color(0xFFF1F3F6),
+    surfaceContainerHighest = Color(0xFFE5E8EE),
+    onSurface = Color(0xFF0F172A),
+    onSurfaceVariant = Color(0xFF64748B),
+    onSurfaceDisabled = Color(0xFF94A3B8),
+    outline = Color(0xFFE2E6ED),
+    outlineVariant = Color(0xFFEBEEF3),
+    error = Color(0xFFDC2626),
+    errorContainer = Color(0xFFDC2626).copy(alpha = 0.10f),
     onError = Color(0xFFFFFFFF),
-    onErrorContainer = Color(0xFF93201F),
-    success = Color(0xFF0EA47E),
-    successContainer = Color(0xFF0EA47E).copy(alpha = 0.12f),
-    warning = Color(0xFFE8930C),
-    warningContainer = Color(0xFFE8930C).copy(alpha = 0.14f),
-    divider = Color(0xFFE7EBF1)
+    onErrorContainer = Color(0xFF991B1B),
+    success = Color(0xFF16A34A),
+    successContainer = Color(0xFF16A34A).copy(alpha = 0.10f),
+    warning = Color(0xFFD97706),
+    warningContainer = Color(0xFFD97706).copy(alpha = 0.12f),
+    divider = Color(0xFFEBEEF3)
 )
 
 object ModkeyDesign {
@@ -239,13 +239,13 @@ object ModkeyDesign {
         )
     }
 
-    // ── Shapes ──
+    // ── Shapes (Crisp SaaS Panel Radii) ──
     object Shapes {
-        val extraSmall = RoundedCornerShape(8.dp)
-        val small = RoundedCornerShape(12.dp)
-        val medium = RoundedCornerShape(16.dp)
-        val large = RoundedCornerShape(24.dp)
-        val extraLarge = RoundedCornerShape(32.dp)
+        val extraSmall = RoundedCornerShape(6.dp)
+        val small = RoundedCornerShape(8.dp)
+        val medium = RoundedCornerShape(12.dp)
+        val large = RoundedCornerShape(14.dp)
+        val extraLarge = RoundedCornerShape(16.dp)
         val full = CircleShape
     }
 
